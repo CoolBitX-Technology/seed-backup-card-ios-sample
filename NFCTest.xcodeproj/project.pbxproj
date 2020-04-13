@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B56936824443A9200AE714E /* Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B56936724443A9200AE714E /* Extension.swift */; };
 		64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FD2383EDB900CD65D3 /* AppDelegate.swift */; };
 		64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */; };
 		64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C148012383EDB900CD65D3 /* FirstViewController.swift */; };
@@ -37,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0B56936724443A9200AE714E /* Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extension.swift; sourceTree = "<group>"; };
 		64C147FA2383EDB900CD65D3 /* NFCTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NFCTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		64C147FD2383EDB900CD65D3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 				64C1480D2383EDBB00CD65D3 /* LaunchScreen.storyboard */,
 				64C148102383EDBB00CD65D3 /* Info.plist */,
 				64C148082383EDB900CD65D3 /* NFCTest.xcdatamodeld */,
+				0B56936724443A9200AE714E /* Extension.swift */,
 			);
 			path = NFCTest;
 			sourceTree = "<group>";
@@ -270,6 +273,7 @@
 				64C148042383EDB900CD65D3 /* SecondViewController.swift in Sources */,
 				64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */,
 				64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */,
+				0B56936824443A9200AE714E /* Extension.swift in Sources */,
 				64C1480A2383EDB900CD65D3 /* NFCTest.xcdatamodeld in Sources */,
 				64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */,
 			);

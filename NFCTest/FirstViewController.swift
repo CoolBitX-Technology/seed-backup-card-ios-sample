@@ -20,9 +20,23 @@ class FirstViewController: UIViewController {
     }
     
     @IBAction func TagReaderAction(_ sender: Any) {
-        tagSession = NFCTagReaderSession(pollingOption: [.iso14443, .iso15693, .iso18092], delegate: self, queue: nil)
+        tagSession = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: nil)
         tagSession?.alertMessage = "Hold your iPhone near the item to learn more about it."
         tagSession?.begin()
+    }
+    
+    func showalertMessage(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
+        if let readerError = error as? NFCReaderError {
+            // Show alert dialog box when the invalidation reason is not because of a read success from the single tag read mode,
+            // or user cancelled a multi-tag read mode session from the UI or programmatically using the invalidate method call.
+            let alertMessage = (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
+            && (readerError.code != .readerSessionInvalidationErrorUserCanceled) ? error.localizedDescription : session.alertMessage
+            let alertController = UIAlertController(title: "Session Invalidated", message: alertMessage, preferredStyle: .alert)
+            alertController.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
+            DispatchQueue.main.async {
+                self.present(alertController, animated: true, completion: nil)
+            }
+        }
     }
 }
 
@@ -30,108 +44,84 @@ class FirstViewController: UIViewController {
 extension FirstViewController: NFCTagReaderSessionDelegate {
     
     func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-        print("tagReader_SessionDidBecomeActive:\(session.description)")
+        print("Tag reader active")
     }
     
     func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        print("tagReader_didInvalidateWithError:\(error)")
-    }
-    
-    func isNFCNDEFTag(didDetect tags: [NFCTag]) -> Bool {
-        var ndefTag: NFCNDEFTag
-        var isNFCNDEFTag = false
-        switch tags.first! {
-        case let .iso7816(tag):
-            ndefTag = tag
-            isNFCNDEFTag = true
-        case let .feliCa(tag):
-            ndefTag = tag
-            isNFCNDEFTag = true
-        case let .iso15693(tag):
-            ndefTag = tag
-            isNFCNDEFTag = true
-        case let .miFare(tag):
-            ndefTag = tag
-        @unknown default: break //Tag not valid.
-        }
-        return isNFCNDEFTag
+        //showalertMessage(session, didInvalidateWithError: error)
     }
     
     func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
-        print("tagReader_didDetect_tags:\(tags)")
-        
-        var ndefTag: NFCMiFareTag
-    
-        switch tags.first! {
-        case let .miFare(tag):
-            ndefTag = tag
-        case .feliCa(_), .iso7816(_), .iso15693(_):
-            session.invalidate(errorMessage: "Tag not MiFare.")
-            return
-        @unknown default:
-            session.invalidate(errorMessage: "Tag not valid.")
+        print("Detect tag!")
+        if tags.count > 1 {
+            // Restart polling in 500ms
+            let retryInterval = DispatchTimeInterval.milliseconds(500)
+            session.alertMessage = "More than 1 tag is detected, please remove all tags and try again."
+            DispatchQueue.global().asyncAfter(deadline: .now() + retryInterval, execute: {
+                session.restartPolling()
+            })
             return
         }
         
-        print("tag_description:\(ndefTag.description)")
-        print("MiFare_family:\(ndefTag.mifareFamily.rawValue)") //4:desfire
-        session.connect(to: tags.first!) { (error: Error?) in
-            if error != nil {
-                print("tagReader_connectErr:\(String(describing: error))")
-                session.invalidate(errorMessage: "Connection error. Please try again.")
-                return
-            }
-            let message = "no hello"
-            let payloadData = message.data(using: .utf8)!
-            let textPayload = NFCNDEFPayload.init(format: NFCTypeNameFormat.nfcWellKnown, type: "T".data(using: .utf8)!, identifier: Data.init(count: 0), payload: payloadData, chunkSize: 0)
-            let ndefMessage = NFCNDEFMessage(records: [textPayload])
-            ndefTag.writeNDEF(ndefMessage) { (error: Error?) in
+        if case let .iso7816(tag) = tags.first! {
+            session.connect(to: tags.first!) { (error: Error?) in
                 if error != nil {
-                    print("write_error:\(String(describing: error))")
-                    session.invalidate(errorMessage: "Update tag failed. Please try again.")
-                } else {
-                    session.alertMessage = "Update success!\nmessage:\(message)"
-                    session.invalidate()
-                }
-            }
-            
-            //self.mark(MiFareTag: ndefTag, TagReaderSession: session)
-            
-        }
-    }
-    
-    func mark(MiFareTag ndefTag: NFCMiFareTag, TagReaderSession session: NFCTagReaderSession) {
-        let cm00A4 = NFCISO7816APDU(instructionClass:0x00, instructionCode:0xA4, p1Parameter:0x04, p2Parameter:0x00, data: "C1C2C3C4C5".dataWithHexString(), expectedResponseLength:16)
-        ndefTag.sendMiFareISO7816Command(cm00A4) { (data, int1, int2, error) in
-            print("sendMiFareResult_00A4:\(data) int1:\(int1) int2:\(int2) error:\(String(describing: error))");
-            let cm8052 = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x52, p1Parameter:0x00, p2Parameter:0x00, data: Data(), expectedResponseLength:16)
-            ndefTag.sendMiFareISO7816Command(cm8052) { (data, int1, int2, error) in
-                print("sendMiFareResult_8052:\([UInt8](data)) int1:\(int1) int2:\(int2) error:\(String(describing: error))");
-            }
-        }
-        
-        ndefTag.sendMiFareCommand(commandPacket: Data()) { (data, error) in
-            print("sendMiFareResult_data:\(data) error:\(String(describing: error))");
-            //NFCError Code=100 "Tag connection lost"
-        }
-        
-        ndefTag.queryNDEFStatus() { (status: NFCNDEFStatus, _, error: Error?) in
-            
-            if status == .notSupported {
-                session.invalidate(errorMessage: "Tag not valid.")
-                return
-            }
-            
-            ndefTag.readNDEF() { (message: NFCNDEFMessage?, error: Error?) in
-                if error != nil || message == nil {
-                    session.invalidate(errorMessage: "Read error. Please try again.")
+                    print("connect tag error:\(String(describing: error))")
+                    session.invalidate(errorMessage: "Connection iso7816 error. Please try again.")
                     return
                 }
-                let payload:NFCNDEFPayload = (message?.records.first)!;
-                print("TAGNDEF_payload_type:\(payload.type.dataToStr()) ID:\(payload.identifier.dataToStr()) payload:\(payload.payload.dataToStr())")
-                
+                print("connecting to Tag iso7816!")
+                self.send(session, didDetect: tag)
+            }
+            return
+        }
+        
+        if case .miFare(_) = tags.first! {
+            session.invalidate(errorMessage: "miFare tag.")
+        } else if case .feliCa(_) = tags.first! {
+            session.invalidate(errorMessage: "feliCa tag.")
+        } else if case .iso15693(_) = tags.first! {
+            session.invalidate(errorMessage: "iso15693 tag.")
+        } else {
+            session.invalidate(errorMessage: "unknown tag.")
+        }
+
+    }
+    
+    func send(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
+        let myAPDU = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x36, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
+        tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
+            guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
+                session.invalidate(errorMessage: "INS codes= 36, response: No further qualification")
+                return
+            }
+            print("sendCommand")
+        }
+            
+    }
+    
+    func sendData() -> Data {
+        return Data()
+    }
+    
+    func sendISO7816Command(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
+        let cm00A4 = NFCISO7816APDU(instructionClass:0x00, instructionCode:0xA4, p1Parameter:0x04, p2Parameter:0x00, data: "C1C2C3C4C5C6".dataWithHexString(), expectedResponseLength:16)
+        tag.sendCommand(apdu: cm00A4) { (data, int1, int2, error) in
+            guard error != nil && !(int1 == 0x90 && int2 == 0) else {
+                session.invalidate(errorMessage: "INS codes= A4, response: No further qualification")
+                return
+            }
+            print("sendISO7816Result_00A4:\(data) int1:\(int1) int2:\(int2) error:\(String(describing: error))");
+            let cm8052 = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x52, p1Parameter:0x00, p2Parameter:0x00, data: Data(), expectedResponseLength:16)
+            tag.sendCommand(apdu: cm8052) { (data, int1, int2, error) in
+                guard error != nil && !(int1 == 0x90 && int2 == 0) else {
+                    session.invalidate(errorMessage: "INS codes= 52, response: No further qualification")
+                    return
+                }
+                print("sendISO7816Result_8052:\([UInt8](data)) int1:\(int1) int2:\(int2) error:\(String(describing: error))");
             }
         }
     }
+    
 }
 

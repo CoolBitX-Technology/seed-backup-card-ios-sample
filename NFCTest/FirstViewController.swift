@@ -114,7 +114,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
     
     func sendData() -> Data {
         let st = "80CE00004104cd1adb3954f84835e1b6fbae998108c6662e1b1de367ef77732c47999cf10c20d744facc8924c260330a4f5cb3e069e40ee59a138221a1db7df0959d3d7d495e"
-        return st.dataWithHexString()
+        return st.hex!
     }
     
     func sendISO7816Command(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {

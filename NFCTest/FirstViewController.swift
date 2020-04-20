@@ -71,7 +71,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
                     return
                 }
                 print("connecting to Tag iso7816!")
-                self.send(session, didDetect: tag)
+                self.send80360000(session, didDetect: tag)
             }
             return
         }
@@ -88,20 +88,33 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
 
     }
     
-    func send(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
+    func send80360000(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
         let myAPDU = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x36, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
         tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
             guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                session.invalidate(errorMessage: "INS codes= 36, response: No further qualification")
+                session.invalidate(errorMessage: "INS codes= 36, response: No further qualification:\(sw1)\(sw2)")
                 return
             }
-            print("sendCommand")
+            print("sendCommand:\(sw1)\(sw2)")//98152
+        }
+            
+    }
+    
+    func send00B00000(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
+        let myAPDU = NFCISO7816APDU(instructionClass:0x00, instructionCode:0xB0, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
+        tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
+            guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
+                session.invalidate(errorMessage: "INS codes= B0, response: No further qualification:\(sw1)\(sw2)")
+                return
+            }
+            print("sendCommand:\(sw1)\(sw2)")//1100
         }
             
     }
     
     func sendData() -> Data {
-        return Data()
+        let st = "80CE00004104cd1adb3954f84835e1b6fbae998108c6662e1b1de367ef77732c47999cf10c20d744facc8924c260330a4f5cb3e069e40ee59a138221a1db7df0959d3d7d495e"
+        return st.dataWithHexString()
     }
     
     func sendISO7816Command(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {

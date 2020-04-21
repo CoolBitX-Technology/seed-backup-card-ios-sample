@@ -92,10 +92,13 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
         let myAPDU = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x36, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
         tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
             guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                session.invalidate(errorMessage: "INS codes= 36, response: No further qualification:\(sw1)\(sw2)")
+                session.invalidate(errorMessage: "INS codes= 36, response: No further qualification:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")
+                if let err = error {
+                    print("error:\(err.localizedDescription)")
+                }
                 return
             }
-            print("sendCommand:\(sw1)\(sw2)")//98152
+            print("sendCommand:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")//6298
         }
             
     }
@@ -104,10 +107,14 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
         let myAPDU = NFCISO7816APDU(instructionClass:0x00, instructionCode:0xB0, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
         tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
             guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                session.invalidate(errorMessage: "INS codes= B0, response: No further qualification:\(sw1)\(sw2)")
+                session.invalidate(errorMessage: "INS codes= B0, response: No further qualification:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")
+                if let err = error {
+                    print("error:\(err.localizedDescription)")
+                }
+                
                 return
             }
-            print("sendCommand:\(sw1)\(sw2)")//1100
+            print("sendCommand:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")//6e0
         }
             
     }

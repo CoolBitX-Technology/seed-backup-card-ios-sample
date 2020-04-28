@@ -13,6 +13,20 @@ class FirstViewController: UIViewController {
     
     var tagSession: NFCTagReaderSession?
     //CWS卡片的Tag可能是MIFARE DESFire，依循ISO/IEC 14443
+    var HexLookup : [Character] =
+      [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" ]
+    var sessionAppPrivateKey =  "04e834395299dc3757d15bbea29aaa44fd421e3252012cba9d71fabc13d386133425a24ea0c181d70e1723cca7764c5a4e6bd326d5a9aac799f22acbf501bd7181";  //need random
+    
+    var BACKUP = "80320500";
+    var RESTORE = "80340000";
+    var RESET = "80360000";
+    var SECURE_CHANNEL = "80CE000041";
+    
+    var GenuineMasterChainCode_NonInstalled = "611c6956ca324d8656b50c39a0e5ef968ecd8997e22c28c11d56fb7d28313fa3";
+    var GenuineMasterPublicKey_NonInstalled = "04e720c727290f3cde711a82bba2f102322ab88029b0ff5be5171ad2d0a1a26efcd3502aa473cea30db7bc237021d00fd8929123246a993dc9e76ca7ef7f456ade";
+    var GenuineMasterChainCode_Test = "f5a0c5d9ffaee0230a98a1cc982117759c149a0c8af48635776135dae8f63ba4";
+    var GenuineMasterPublicKey_Test = "0401e3a7de779276ef24b9d5617ba86ba46dc5a010be0ce7aaf65876402f6a53a5cf1fecab85703df92e9c43e12a49f33370761153216df8291b7aa2f1a775b086";
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -71,7 +85,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
                     return
                 }
                 print("connecting to Tag iso7816!")
-                self.send80360000(session, didDetect: tag)
+                self.sendResetCmd(session, didDetect: tag)
             }
             return
         }
@@ -87,61 +101,58 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
         }
 
     }
+  
+        
+    func byteArrayToHexString(_ byteArray : Data) -> String {
+
+         var stringToReturn = ""
+
+         for oneByte in byteArray {
+            let asInt = Int(oneByte)
+            stringToReturn.append(self.HexLookup[asInt >> 4])
+            stringToReturn.append(self.HexLookup[asInt & 0x0f])
+         }
+         return stringToReturn
+      }
+        
     
-    func send80360000(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
-        let myAPDU = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x36, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
-        tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
-            guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                session.invalidate(errorMessage: "INS codes= 36, response: No further qualification:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")
-                if let err = error {
-                    print("error:\(err.localizedDescription)")
-                }
-                return
-            }
-            print("sendCommand:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")//6298
+    func seDataWithHexString(cmd:String) -> Data {
+        
+        var hex = cmd ;
+        var data = Data();
+        while(hex.count > 0) {
+            let subIndex = hex.index(hex.startIndex, offsetBy: 2)
+            let c = String(hex[..<subIndex])
+            hex = String(hex[subIndex...])
+            var ch: UInt32 = 0
+            Scanner(string: c).scanHexInt32(&ch)
+            var char = UInt8(ch)
+            data.append(&char, count: 1)
         }
+        var tpm = self.byteArrayToHexString(data);
+        print(tpm);
+        return data
+    }
+    
+    func sendResetCmd(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
+
+        let SECURE_CHANNEL_APDU = NFCISO7816APDU.init(data: self.seDataWithHexString(cmd:self.SECURE_CHANNEL+self.sessionAppPrivateKey))!
+       tag.sendCommand(apdu: SECURE_CHANNEL_APDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
+        var responseStr = self.byteArrayToHexString(response);
+        print("sw1=\(sw1)", "sw2=\(sw2)");
+        print("response=\(responseStr)");
+        if (responseStr.count>4){ //sucess
+          
             
-    }
-    
-    func send00B00000(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
-        let myAPDU = NFCISO7816APDU(instructionClass:0x00, instructionCode:0xB0, p1Parameter:0, p2Parameter:0, data: self.sendData(), expectedResponseLength:16)
-        tag.sendCommand(apdu: myAPDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
-            guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                session.invalidate(errorMessage: "INS codes= B0, response: No further qualification:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")
-                if let err = error {
-                    print("error:\(err.localizedDescription)")
-                }
-                
-                return
-            }
-            print("sendCommand:\(String(sw1, radix: 16))\(String(sw2, radix: 16))")//6e0
+        }else{ //error
+            return ;
         }
-            
-    }
+          
+           // READ BINARY
+        
+          
+       }
     
-    func sendData() -> Data {
-        let st = "80CE00004104cd1adb3954f84835e1b6fbae998108c6662e1b1de367ef77732c47999cf10c20d744facc8924c260330a4f5cb3e069e40ee59a138221a1db7df0959d3d7d495e"
-        return st.hex!
-    }
-    
-    func sendISO7816Command(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
-        let cm00A4 = NFCISO7816APDU(instructionClass:0x00, instructionCode:0xA4, p1Parameter:0x04, p2Parameter:0x00, data: "C1C2C3C4C5C6".dataWithHexString(), expectedResponseLength:16)
-        tag.sendCommand(apdu: cm00A4) { (data, int1, int2, error) in
-            guard error != nil && !(int1 == 0x90 && int2 == 0) else {
-                session.invalidate(errorMessage: "INS codes= A4, response: No further qualification")
-                return
-            }
-            print("sendISO7816Result_00A4:\(data) int1:\(int1) int2:\(int2) error:\(String(describing: error))");
-            let cm8052 = NFCISO7816APDU(instructionClass:0x80, instructionCode:0x52, p1Parameter:0x00, p2Parameter:0x00, data: Data(), expectedResponseLength:16)
-            tag.sendCommand(apdu: cm8052) { (data, int1, int2, error) in
-                guard error != nil && !(int1 == 0x90 && int2 == 0) else {
-                    session.invalidate(errorMessage: "INS codes= 52, response: No further qualification")
-                    return
-                }
-                print("sendISO7816Result_8052:\([UInt8](data)) int1:\(int1) int2:\(int2) error:\(String(describing: error))");
-            }
-        }
-    }
-    
+}
 }
 

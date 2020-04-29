@@ -8,6 +8,33 @@
 
 import UIKit
 
+public enum APDU {
+    static let BACKUP = "80320500"
+    static let RESTORE = "80340000"
+    static let RESET = "80360000"
+    static let SECURE_CHANNEL = "80CE000041" // apduHeader + salt(4B)長度 41是16進位 SHA256後結果
+}
+
+public enum GenuineKey {
+    static let SessionAppPublicKey =  "04e834395299dc3757d15bbea29aaa44fd421e3252012cba9d71fabc13d386133425a24ea0c181d70e1723cca7764c5a4e6bd326d5a9aac799f22acbf501bd7181";  //need random
+    static let GenuineMasterChainCode_NonInstalled = "611c6956ca324d8656b50c39a0e5ef968ecd8997e22c28c11d56fb7d28313fa3";
+    static let GenuineMasterPublicKey_NonInstalled = "04e720c727290f3cde711a82bba2f102322ab88029b0ff5be5171ad2d0a1a26efcd3502aa473cea30db7bc237021d00fd8929123246a993dc9e76ca7ef7f456ade";
+    static let GenuineMasterChainCode_Test = "f5a0c5d9ffaee0230a98a1cc982117759c149a0c8af48635776135dae8f63ba4";
+    static let GenuineMasterPublicKey_Test = "0401e3a7de779276ef24b9d5617ba86ba46dc5a010be0ce7aaf65876402f6a53a5cf1fecab85703df92e9c43e12a49f33370761153216df8291b7aa2f1a775b086";
+}
+
+public class KeyUtil {
+    public static func getChildPublicKey(_ parentPublicKey: String,_ chainCode: String,_ index: String) -> String {
+        // todo
+        return ""
+    }
+    
+    public static func getChildChainCode(_ parentPublicKey: String,_ chainCode: String,_ index: String) -> String {
+        // todo
+        return ""
+    }
+}
+
 extension String {
     // Ed
     func dataWithHexString() -> Data {
@@ -26,7 +53,7 @@ extension String {
     }
     
     // tom
-    func seDataWithHexString() -> Data {
+    func seDataWithHexString() -> Data { 
         var hex = self
         var data = Data()
         while(hex.count > 0) {

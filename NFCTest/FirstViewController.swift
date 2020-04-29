@@ -9,13 +9,6 @@
 import UIKit
 import CoreNFC
 
-public enum APDU {
-    static let BACKUP = "80320500"
-    static let RESTORE = "80340000"
-    static let RESET = "80360000"
-    static let SECURE_CHANNEL = "80CE000041"
-}
-
 enum TagReaderAction {
     case backup
     case restore
@@ -27,12 +20,6 @@ class FirstViewController: UIViewController {
     var action: TagReaderAction?
     var tagSession: NFCTagReaderSession?
     //CWS卡片的Tag可能是MIFARE DESFire，依循ISO/IEC 14443
-    let sessionAppPrivateKey =  "04e834395299dc3757d15bbea29aaa44fd421e3252012cba9d71fabc13d386133425a24ea0c181d70e1723cca7764c5a4e6bd326d5a9aac799f22acbf501bd7181";  //need random
-    let GenuineMasterChainCode_NonInstalled = "611c6956ca324d8656b50c39a0e5ef968ecd8997e22c28c11d56fb7d28313fa3";
-    let GenuineMasterPublicKey_NonInstalled = "04e720c727290f3cde711a82bba2f102322ab88029b0ff5be5171ad2d0a1a26efcd3502aa473cea30db7bc237021d00fd8929123246a993dc9e76ca7ef7f456ade";
-    let GenuineMasterChainCode_Test = "f5a0c5d9ffaee0230a98a1cc982117759c149a0c8af48635776135dae8f63ba4";
-    let GenuineMasterPublicKey_Test = "0401e3a7de779276ef24b9d5617ba86ba46dc5a010be0ce7aaf65876402f6a53a5cf1fecab85703df92e9c43e12a49f33370761153216df8291b7aa2f1a775b086";
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -59,6 +46,18 @@ class FirstViewController: UIViewController {
         TagReader()
     }
     
+    func exe() {
+        switch self.action {
+        case .reset:
+            self.reset()
+        case .restore:
+            self.restore()
+        case .backup:
+            self.backup()
+        case .none:
+            break
+        }
+    }
     func restore() {
         
     }
@@ -121,27 +120,53 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
     }
   
     func sendCmd(_ session: NFCTagReaderSession, didDetect tag: NFCISO7816Tag) {
-        let SECURE_CHANNEL_APDU = NFCISO7816APDU.init(data: (APDU.SECURE_CHANNEL + self.sessionAppPrivateKey).dataWithHexString())!
+        let SECURE_CHANNEL_APDU = NFCISO7816APDU.init(data: (APDU.SECURE_CHANNEL + GenuineKey.SessionAppPublicKey).dataWithHexString())!
         tag.sendCommand(apdu: SECURE_CHANNEL_APDU) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
-            let responseStr = response.byteArrayToHexString()
-            print("sw1=\(sw1)", "sw2=\(sw2)")
-            print("response=\(responseStr)")
-            guard responseStr.count > 4 else {
+            let responseHexString = response.byteArrayToHexString()
+            print("sw1=\(sw1)/\(String(sw1, radix: 16)),sw2=\(sw2)/\(String(sw2, radix: 16))")
+            print("response=\(responseHexString)")
+            /*guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
+                return
+            }*/
+            guard responseHexString.count > 4 else {
                 //error
                 return
             }
             
-            // READ BINARY
-            switch self.action {
-            case .reset:
-                self.reset()
-            case .restore:
-                self.restore()
-            case .backup:
-                self.backup()
-            case .none:
-                break
+            /* READ BINARY
+             這個指令收到的回傳格式是：
+             [installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (32B)] [testCipher(variable length)] 9000
+             */
+            var tmp:String = responseHexString
+            let splitlen = 4
+            let installType = String(tmp.prefix(splitlen))
+            tmp = String(tmp.suffix(tmp.count-splitlen))
+            let cardNameLength = Int(tmp.prefix(splitlen))
+            tmp = String(tmp.suffix(tmp.count-splitlen))
+            let cardNameHex = String(tmp.prefix(splitlen*2))
+            tmp = String(tmp.suffix(tmp.count-splitlen*2))
+            let nonceIndex = String(tmp.prefix(64))
+            var GenuineMasterPublicKey = ""
+            var GenuineMasterChainCode = ""
+            switch (installType) {
+                case "0000":
+                    GenuineMasterPublicKey = GenuineKey.GenuineMasterPublicKey_NonInstalled;
+                    GenuineMasterChainCode = GenuineKey.GenuineMasterChainCode_NonInstalled;
+                    break
+                case "0001":
+                    GenuineMasterPublicKey = GenuineKey.GenuineMasterPublicKey_Test;
+                    GenuineMasterChainCode = GenuineKey.GenuineMasterChainCode_Test;
+                    break
+                // add case "0002" here for real HSM key.
+                default:
+                    break
             }
+            
+            let GenuineChild1PublicKey = KeyUtil.getChildPublicKey(GenuineMasterPublicKey, GenuineMasterChainCode, cardNameHex);
+            let GenuineChild1ChainCode = KeyUtil.getChildChainCode(GenuineMasterPublicKey, GenuineMasterChainCode, cardNameHex);
+            let GenuineChild2PublicKey = KeyUtil.getChildPublicKey(GenuineChild1PublicKey, GenuineChild1ChainCode, nonceIndex);
+            self.exe()
+            
         }
     }
     

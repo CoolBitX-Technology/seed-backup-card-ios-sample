@@ -9,6 +9,7 @@
 import UIKit
 
 extension String {
+    // Ed
     func dataWithHexString() -> Data {
         var hex = self
         var data = Data()
@@ -21,6 +22,23 @@ extension String {
             var char = UInt8(ch)
             data.append(&char, count: 1)
         }
+        return data
+    }
+    
+    // tom
+    func seDataWithHexString() -> Data {
+        var hex = self
+        var data = Data()
+        while(hex.count > 0) {
+            let subIndex = hex.index(hex.startIndex, offsetBy: 2)
+            let c = String(hex[..<subIndex])
+            hex = String(hex[subIndex...])
+            var ch: UInt32 = 0
+            Scanner(string: c).scanHexInt32(&ch)
+            var char = UInt8(ch)
+            data.append(&char, count: 1)
+        }
+        print(data.byteArrayToHexString())
         return data
     }
     
@@ -52,6 +70,19 @@ extension String {
 }
 
 extension Data {
+    // Tom
+    func byteArrayToHexString() -> String {
+        let HexLookup : [Character] = [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" ]
+        var stringToReturn = ""
+        for oneByte in self {
+            let asInt = Int(oneByte)
+            stringToReturn.append(HexLookup[asInt >> 4])
+            stringToReturn.append(HexLookup[asInt & 0x0f])
+        }
+        return stringToReturn
+    }
+    
+    // Ed
     func dataToStr() -> String {
         return String(data:self, encoding: String.Encoding.utf8) ?? ""
     }

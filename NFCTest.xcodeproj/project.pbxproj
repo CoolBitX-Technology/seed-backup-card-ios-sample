@@ -3,11 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0B56936824443A9200AE714E /* Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B56936724443A9200AE714E /* Extension.swift */; };
+		250ED63824841B6C00E4927D /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 250ED63724841B6C00E4927D /* CryptoSwift */; };
+		250ED63A2484B09900E4927D /* CryptoUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250ED6392484B09900E4927D /* CryptoUtil.swift */; };
+		250ED63C2484B32B00E4927D /* KeyUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250ED63B2484B32B00E4927D /* KeyUtil.swift */; };
+		255EF80E247FC50D001B0C58 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 255EF80D247FC50D001B0C58 /* secp256k1 */; };
 		64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FD2383EDB900CD65D3 /* AppDelegate.swift */; };
 		64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */; };
 		64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C148012383EDB900CD65D3 /* FirstViewController.swift */; };
@@ -39,6 +43,8 @@
 
 /* Begin PBXFileReference section */
 		0B56936724443A9200AE714E /* Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extension.swift; sourceTree = "<group>"; };
+		250ED6392484B09900E4927D /* CryptoUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtil.swift; sourceTree = "<group>"; };
+		250ED63B2484B32B00E4927D /* KeyUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyUtil.swift; sourceTree = "<group>"; };
 		64C147FA2383EDB900CD65D3 /* NFCTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NFCTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		64C147FD2383EDB900CD65D3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -63,6 +69,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				255EF80E247FC50D001B0C58 /* secp256k1 in Frameworks */,
+				250ED63824841B6C00E4927D /* CryptoSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,6 +125,8 @@
 				64C148102383EDBB00CD65D3 /* Info.plist */,
 				64C148082383EDB900CD65D3 /* NFCTest.xcdatamodeld */,
 				0B56936724443A9200AE714E /* Extension.swift */,
+				250ED63B2484B32B00E4927D /* KeyUtil.swift */,
+				250ED6392484B09900E4927D /* CryptoUtil.swift */,
 			);
 			path = NFCTest;
 			sourceTree = "<group>";
@@ -155,6 +165,10 @@
 			dependencies = (
 			);
 			name = NFCTest;
+			packageProductDependencies = (
+				255EF80D247FC50D001B0C58 /* secp256k1 */,
+				250ED63724841B6C00E4927D /* CryptoSwift */,
+			);
 			productName = NFCTest;
 			productReference = 64C147FA2383EDB900CD65D3 /* NFCTest.app */;
 			productType = "com.apple.product-type.application";
@@ -227,6 +241,10 @@
 				Base,
 			);
 			mainGroup = 64C147F12383EDB900CD65D3;
+			packageReferences = (
+				255EF80C247FC50D001B0C58 /* XCRemoteSwiftPackageReference "secp256k1.swift" */,
+				250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+			);
 			productRefGroup = 64C147FB2383EDB900CD65D3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -271,11 +289,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				64C148042383EDB900CD65D3 /* SecondViewController.swift in Sources */,
+				250ED63A2484B09900E4927D /* CryptoUtil.swift in Sources */,
 				64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */,
 				64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */,
 				0B56936824443A9200AE714E /* Extension.swift in Sources */,
 				64C1480A2383EDB900CD65D3 /* NFCTest.xcdatamodeld in Sources */,
 				64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */,
+				250ED63C2484B32B00E4927D /* KeyUtil.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -608,6 +628,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.1;
+			};
+		};
+		255EF80C247FC50D001B0C58 /* XCRemoteSwiftPackageReference "secp256k1.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Boilertalk/secp256k1.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		250ED63724841B6C00E4927D /* CryptoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			productName = CryptoSwift;
+		};
+		255EF80D247FC50D001B0C58 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 255EF80C247FC50D001B0C58 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
+			productName = secp256k1;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		64C148082383EDB900CD65D3 /* NFCTest.xcdatamodeld */ = {

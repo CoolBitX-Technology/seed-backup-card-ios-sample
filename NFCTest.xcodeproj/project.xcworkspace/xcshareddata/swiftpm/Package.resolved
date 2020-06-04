@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CryptoSwift",
+        "repositoryURL": "https://github.com/krzyzanowskim/CryptoSwift.git",
+        "state": {
+          "branch": null,
+          "revision": "39f08ac5269361a50c08ce1e2f41989bfc4b1ec8",
+          "version": "1.3.1"
+        }
+      },
+      {
+        "package": "secp256k1",
+        "repositoryURL": "https://github.com/CoolBitX-Technology/secp256k1.swift",
+        "state": {
+          "branch": null,
+          "revision": "5d44823b6aeb507210b7738a378aeb9a73719ab6",
+          "version": "0.1.6"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

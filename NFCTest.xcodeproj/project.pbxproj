@@ -8,10 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		0B56936824443A9200AE714E /* Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B56936724443A9200AE714E /* Extension.swift */; };
+		246F63802489419600EEDAB8 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 246F637F2489419600EEDAB8 /* secp256k1 */; };
 		250ED63824841B6C00E4927D /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 250ED63724841B6C00E4927D /* CryptoSwift */; };
 		250ED63A2484B09900E4927D /* CryptoUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250ED6392484B09900E4927D /* CryptoUtil.swift */; };
 		250ED63C2484B32B00E4927D /* KeyUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250ED63B2484B32B00E4927D /* KeyUtil.swift */; };
-		255EF80E247FC50D001B0C58 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 255EF80D247FC50D001B0C58 /* secp256k1 */; };
 		64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FD2383EDB900CD65D3 /* AppDelegate.swift */; };
 		64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */; };
 		64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C148012383EDB900CD65D3 /* FirstViewController.swift */; };
@@ -69,8 +69,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				255EF80E247FC50D001B0C58 /* secp256k1 in Frameworks */,
 				250ED63824841B6C00E4927D /* CryptoSwift in Frameworks */,
+				246F63802489419600EEDAB8 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -166,8 +166,8 @@
 			);
 			name = NFCTest;
 			packageProductDependencies = (
-				255EF80D247FC50D001B0C58 /* secp256k1 */,
 				250ED63724841B6C00E4927D /* CryptoSwift */,
+				246F637F2489419600EEDAB8 /* secp256k1 */,
 			);
 			productName = NFCTest;
 			productReference = 64C147FA2383EDB900CD65D3 /* NFCTest.app */;
@@ -242,8 +242,8 @@
 			);
 			mainGroup = 64C147F12383EDB900CD65D3;
 			packageReferences = (
-				255EF80C247FC50D001B0C58 /* XCRemoteSwiftPackageReference "secp256k1.swift" */,
 				250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+				246F637E2489419600EEDAB8 /* XCRemoteSwiftPackageReference "secp256k1" */,
 			);
 			productRefGroup = 64C147FB2383EDB900CD65D3 /* Products */;
 			projectDirPath = "";
@@ -630,6 +630,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		246F637E2489419600EEDAB8 /* XCRemoteSwiftPackageReference "secp256k1" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CoolBitX-Technology/secp256k1.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.6;
+			};
+		};
 		250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift.git";
@@ -638,26 +646,18 @@
 				minimumVersion = 1.3.1;
 			};
 		};
-		255EF80C247FC50D001B0C58 /* XCRemoteSwiftPackageReference "secp256k1.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Boilertalk/secp256k1.swift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.4;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		246F637F2489419600EEDAB8 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 246F637E2489419600EEDAB8 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			productName = secp256k1;
+		};
 		250ED63724841B6C00E4927D /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */;
 			productName = CryptoSwift;
-		};
-		255EF80D247FC50D001B0C58 /* secp256k1 */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 255EF80C247FC50D001B0C58 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
-			productName = secp256k1;
 		};
 /* End XCSwiftPackageProductDependency section */
 

@@ -12,11 +12,11 @@
       },
       {
         "package": "secp256k1",
-        "repositoryURL": "https://github.com/CoolBitX-Technology/secp256k1.swift",
+        "repositoryURL": "https://github.com/CoolBitX-Technology/secp256k1.swift/",
         "state": {
           "branch": null,
-          "revision": "5d44823b6aeb507210b7738a378aeb9a73719ab6",
-          "version": "0.1.6"
+          "revision": "7006e7d13dc6469421d8a26ecd04c7281dd1e7a1",
+          "version": "0.1.7"
         }
       }
     ]

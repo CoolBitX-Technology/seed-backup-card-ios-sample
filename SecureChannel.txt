@@ -1,0 +1,130 @@
+Secure Channel Overview
+Generate a set of "GenuineMasterPrivateKeys" by HSM
+Export its public key "GenuineMasterPublicKey" to write into the APP
+When each card is shipped from the factory, HSM derives its own GenuineChild1PrivateKey according to its card number and writes it into the card's "dataStorage" applet (this applet will not be errase with the version update)
+When the APP wants to connect with the card, the APP generates a set of "SessionAppPrivateKey" and transmits its public key to the SE with the 80FD command.
+SE will return its card number and a randomly generated nonce
+APP exports "GenuineChild1PublicKey" with the card number of "GenuineMasterPublicKey"
+Export "GenuineChild2PublicKey" with "GenuineChild1PublicKey" and nonce
+Finally, do the ECDH with the "GenuineChild2PublicKey" and the "SessionAppPrivateKey".
+SE exports "GenuineChild2PrivateKey" with its "GeometricChild1PrivateKey" and nonce, and do ECDH with "SessionAppPublicKey"
+Both side will get the same set of numbers called SecureKey, which will be used as the key for subsequent AES symmetric encryption.
+If the card is not produced by CoolBitX, it will not have a "GenuineChild1PrivateKey" to correctly export the SecureKey, and it cannot interpret the instructions transmitted by the APP with SecureChannel and cannot write encrypted backhaul data.
+As long as the APP can receive any correct set of return data on SecureChannel, it can be determined that the card is a genuine card.
+Continue to use this set of keys to ensure that no other cards are blocked in the session.
+SecureChannel not only ensuring genuine cards, but also does a lot of additional features, including:
+. Encryption to ensure that third parties cannot peep, falsify, tamper with, or re-send any information
+. Checksum, can detect any data damage caused during transmission
+. Split the data so that the instruction whose length exceeds the upper limit of APDU (250Byte) can also be directly transmitted. It is not necessary to do the concatenation inside the instruction while doing 8032 command.
+. Put a set of salt in each instruction and return it locally. APP can be used to judge whether the returned data is a group with the instruction, avoiding confusion.
+GenuineMasterPrivateKey is not just a group. For security, the official use of that group should only exist in the corresponding HSM avoide be read out and let no one know.
+At the time of installation, SE will be given a number installType to identify which set of GenuineChildPrivateKeys that are derived from the GenuineMasterPrivateKey.
+App have the List of all GenuineMasterPublicKeys and installType is obtained when the SecureChannel is created to determine which GenuineMasterPublicKey to use to guide the SecureKey.
+Build connection process：
+APP randomly generate a SessionAppPrivateKey，and send APDU command below：
+80CE0000 41 [SessionAppPublicKey(65B)]
+Return format received by this command is：
+[installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (32B)] [testCipher(variable length)] 9000.
+Use installType select the corresponding GenuineMasterPublicKey，and use cardName and nonce to export the secureKey.
+Finally, use secureKey do AES with testCipher and check if the content is equal to 0x1234 return SUCCESS else reture FAIL.
+Key export process：
+General BIP32 non-harden key export ：
+childKey = parentKey + HMAC(key = chainCode, data = compressedPublicKey(33B) + index(4B))
+SecureChannel is using slighly revise version so index not limit to 4B and can inpute any size of byte array.
+GenuineChild1PublicKey = GenuineMasterPublicKey + HMAC(key = GenuineMasterChainCode, data = CompressedGenuineMasterPublicKey(33B) + cardName(variable length,ASCII))
+GenuineChild2PublicKey = GenuineChild1PublicKey + HMAC(key = GenuineChild1ChainCode, data = CompressedGenuineChild1PublicKey(33B) + nonce(32B))
+Implementing this modified version may be difficult in some environments. If you encounter problems, then discuss whether you want to change to hash fist version.
+SecureChannel Package：
+Write a function put under all processes that are subject to SecureChannel protection，and send APDU command throw this process this function recive two parameter: apduHeader and apduDate. apduHeader include CLA INS P1 P2. apduData include rest of data, payload. 
+For example for 'hi' commpand, apduHeader=0x80500000, apduData=[appId(20B)]. If we don't use SecureChannel, then we only need to add apduData lenght inbetween before send. [apduHeader(4B)] [apduDataLength(1B)] [apduData(0~250B)]. 
+For example, "8050000014000102030405060708091011121314151617181920"
+If we wanna use SecureChannel, we need to generate a 4B salt. Calculate checksumHash = SHA256([apduHeader(4B)] [salt(4B)] [apduData(0~1024B)])
+We can put them in the oder as below and link together, "[apduHeader(4B)] [checksumHash(32B)] [salt(4B)] [apduData(0~1024B)]" and use secureKey to encryption AES for important infomation, and we call it cipherData. Then we divide cipherDate to many blocks, and each block lenght limit to 250B (Non-segmentation is considered to be divided into one, and the same process is performed according to the segmentation process.) 
+Each block is divided into multiples and sequentially transmitted to the SE with the 80CC command, and P1 P2 is respectively designated to point out to be which block is using now, and how many blocks are total.
+For example: 80CC [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [cipherDataBlocklength(1B,0~250)] [cipherDataBlock(0~250B)]
+If the last block is not transmitted, the return value should be 0x9000
+When the last block is transmitted, the SE will concatenate them, decrypt them, and execute the command according to the solved apduHeadernd and encrypted the return value of the instruction then passed back.
+If the instruction fails to execute and an error occurs, the returned value will be an unencrypted error message (e.g. 0x6984)
+If the execution is successful, the encrypted data plus the unencrypted success message will be 0x9000 [cipherReturnData(48~240B)] 9000
+After unplugging 9000 and decrypting with secureKey, you will get the original return value plus the salt given before and their checksumHash
+[checksumHash(32B)] [salt(4B)] [returnData(0~204B)]
+checksumHash = SHA256([salt(4B)] [returnData(0~204B)])
+Check whether the checksumHash is correct to detect whether the data is damaged.
+Comparing whether the decrypted salt is the same as the salt that was originally transmitted can detect whether the data is confused with other instructions.
+Finally, the original return value is combined with 9000 and passed back to the upper layer.
+Collapse
+
+
+
+
+Secure Channel概述
+用到的Key有點多，所以我名字都寫長一點強調用途
+由HSM產生一組GenuineMasterPrivateKey
+導出其公鑰GenuineMasterPublicKey寫進APP
+每張卡片出廠時，由HSM依照其卡號導出專屬於他的GenuineChild1PrivateKey，寫入該卡片的dataStorage applet裡 (這個applet不會隨版本更新而清空)
+當APP要與卡片連線時，APP產生一組SessionAppPrivateKey並將其公鑰以80FD指令傳給SE
+SE會回傳其卡號與一個隨機產生的nonce
+APP以GenuineMasterPublicKey用卡號導出GenuineChild1PublicKey
+再以GenuineChild1PublicKey跟nonce導出GenuineChild2PublicKey
+最後以GenuineChild2PublicKey跟SessionAppPrivateKey做ECDH
+SE則以其GenuineChild1PrivateKey跟nonce導出GenuineChild2PrivateKey，跟SessionAppPublicKey做ECDH
+兩方做出來會得到相同的一組數字稱為SecureKey，做為後續AES對稱式加密用的金鑰
+如果卡片並非由CoolBitX公司生產，他就不會有GenuineChild1PrivateKey，
+就無法正確導出SecureKey、無法解讀APP用SecureChannel傳送的指令，也無法寫出加密過的回傳資料
+只要APP能在SecureChannel收到任何一組正確的回傳資料即可確定該卡片為正版卡
+持續使用這組金鑰即可確保session當中沒有被其他卡片攔截通
+SecureChannel除了確保正版卡以外，還做了很多附加功能，包含：
+。加密，確保第三者無法窺視、偽造、竄改、重送任何資料
+。checksum，能檢測出任何在傳輸過程中導致的資料破損
+。分割資料，讓長度超過APDU上限(250Byte)的指令也可以直接傳送，不需要像過去8032一樣在指令內部做串接
+。每個指令當中放入一組salt並原原本本地回傳，APP可以用來判斷回傳資料是否與指令是一組的，避免錯亂
+GenuineMasterPrivateKey不只一組
+為了安全性，正式使用那組應該只存在對應的HSM裡，不讀出來、不讓任何人知道
+但這樣就無法測試安裝流程，所以我電腦裡也產了一組
+在安裝的時候會給SE一個數字installType辨識他拿到的是哪一組GenuineMasterPrivateKey導出來的GenuineChild1PrivateKey
+APP裡面放有所有GenuineMasterPublicKey的列表
+在建立SecureChannel的時候會取得這個installType來決定要用哪把GenuineMasterPublicKey來導SecureKey
+建立連線流程：
+APP隨機產一把SessionAppPrivateKey，發送以下APDU指令：
+80CE0000 41 [SessionAppPublicKey(65B)]
+這個指令收到的回傳格式是：
+[installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (32B)] [testCipher(variable length)] 9000
+用installType選擇對應的GenuineMasterPublicKey，用cardName跟nonce導出secureKey
+最後用導出的secureKey對testCipher做AES，檢查內容是否等於0x1234，是的話建立成功，否則失敗
+導key流程：
+一般的BIP32 non-harden導key是：
+childKey = parentKey + HMAC(key = chainCode, data = compressedPublicKey(33B) + index(4B))
+SecureChannel用的是小幅改造過的版本，index不再限定是4B、而可以直接帶入任何byte array
+GenuineChild1PublicKey = GenuineMasterPublicKey + HMAC(key = GenuineMasterChainCode, data = CompressedGenuineMasterPublicKey(33B) + cardName(variable length,ASCII))
+GenuineChild2PublicKey = GenuineChild1PublicKey + HMAC(key = GenuineChild1ChainCode, data = CompressedGenuineChild1PublicKey(33B) + nonce(32B))
+實作這個改造版本可能在某些環境上有困難，如果遇到問題了再來討論要不要改成先hash過
+SecureChannel包裝：
+寫一個function墊在所有要受SecureChannel保護的流程下層，讓流程透過這個function發送APDU指令
+這個function收兩個參數：apduHeader和apduData
+apduHeader就是CLA INS P1 P2，4Byte
+apduData就是剩下的data內容、payload
+以hi指令為例，apduHeader=0x80500000, apduData=[appId(20B)]
+如果不使用SecureChannel，就在中間加上apduData的長度後直接傳送
+[apduHeader(4B)] [apduDataLength(1B)] [apduData(0~250B)]
+例如：8050000014000102030405060708091011121314151617181920
+如果要用SecureChannel
+產生一個4B的salt
+計算checksumHash = SHA256([apduHeader(4B)] [salt(4B)] [apduData(0~1024B)])
+把他們依照下列順序重新串接
+[apduHeader(4B)] [checksumHash(32B)] [salt(4B)] [apduData(0~1024B)]
+用secureKey將上述資料做AES加密，稱為cipherData
+然後把cipherData分割成數個block，使每個block長度不超過250B  (不分割視為分割成一個，一樣照著有分割的流程進行)
+將每個block分為多次依序用80CC指令傳給SE，以P1 P2分別指定現在是第幾個block、總共有多少個block
+80CC [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [cipherDataBlocklength(1B,0~250)] [cipherDataBlock(0~250B)]
+如果傳送的不是最後一個block，回傳值應為0x9000
+傳送最後一個block時，SE會將他們串接起來、解密、依照解出來的apduHeader執行該指令
+並將指令的回傳值加密後回傳
+如果該指令執行失敗、發生錯誤，回傳值會是未加密的錯誤訊息 (e.g. 0x6984)
+如果執行成功。就是加密過的資料加上未加密的成功訊息0x9000
+[cipherReturnData(48~240B)] 9000
+拔掉9000後以secureKey解密，會得到本來的回傳值加上之前給的salt與他們的checksumHash
+[checksumHash(32B)] [salt(4B)] [returnData(0~204B)]
+checksumHash = SHA256([salt(4B)] [returnData(0~204B)])
+比對checksumHash是否正確可以檢測資料是否有破損
+比對解密出來的salt是否與當初傳送的salt相同可以檢測資料是否有與其他指令搞混
+最後將本來的回傳值重新與9000組合後傳回上層處理

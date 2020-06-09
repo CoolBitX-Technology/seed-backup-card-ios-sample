@@ -19,19 +19,16 @@ class FirstViewController: UIViewController {
     
     var action: TagReaderAction?
     var tagSession: NFCTagReaderSession?
-    //CWS卡片的Tag可能是MIFARE DESFire，依循ISO/IEC 14443
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+
     }
     
     func readTag() {
-
-//        tagSession?.invalidate()
         tagSession = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: nil)
         tagSession?.alertMessage = "Hold your iPhone near the item to learn more about it."
         tagSession?.begin()
-        
     }
     
     @IBAction func restoreTagReaderAction(_ sender: Any) {
@@ -147,7 +144,9 @@ class FirstViewController: UIViewController {
             tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
                 let sw1String = String(sw1, radix: 16)
                 let sw2String = String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0)
+                print("send APDU")
                 print("status    : \(sw1String)\(sw2String)")
+                print("message   : \(self.handleStatus(status: sw1String + sw2String))")
                 print("response  : \(response.hexEncodedString())")
                 result.append(response)
                 
@@ -158,7 +157,37 @@ class FirstViewController: UIViewController {
         }
     }
     
+    func handleStatus(status: String) -> String {
+        var message = String()
+        switch status {
+        case ErrorCode.SUCCESS:
+            message = "SUCCESS"
+            break
+        case ErrorCode.RESET_FIRST:
+            message = "RESET FIRST"
+            break
+            
+        case ErrorCode.NO_DATA:
+            message = "NO DATA"
+            break
+        case ErrorCode.PING_CODE_NOT_MATCH:
+            message = "PING CODE NOT MATCH"
+            break
+        case ErrorCode.CARD_IS_LOCKED:
+            message = "CARD IS LOCKED"
+            break
+        default:
+            message = "OTHER"
+            break
+        }
+        return message
+    }
+    
     func handleResponse(_ result: Data) {
+        if result.isEmpty {
+            print("result       : empty")
+            return
+        }
         print("result       : \(result.hexEncodedString())")
         print("hash         : \(result[0..<32].hexEncodedString())")
         print("salt         : \(result[32..<36].hexEncodedString())")
@@ -172,9 +201,6 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
     func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         print("Tag reader active")
     }
-//    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-//        print("Tag reader active")
-//    }
     
     func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
         print("didInvalidateWithError")
@@ -201,7 +227,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
                     return
                 }
                 print("connecting to Tag iso7816!")
-                self.setupSecureChannel(tag)
+                self.setupSecureChannel(session,tag)
             }
             return
         }
@@ -218,7 +244,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
 
     }
     
-    func setupSecureChannel(_ tag: NFCISO7816Tag) {
+    func setupSecureChannel(_ session: NFCTagReaderSession, _ tag: NFCISO7816Tag) {
         
         var secureChannelData = Data()
         secureChannelData.append(APDU.CHANNEL_ESTABLISH)
@@ -226,15 +252,12 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
         let apdu = NFCISO7816APDU.init(data: secureChannelData)!
         
         tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
-            
+            print("setup SecureChannel!")
             print("status    : \(String(sw1, radix: 16))\(String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0))")
             print("response  : \(response.hexEncodedString())")
             
-            /*guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                return
-            }*/
             guard response.count > 2 else {
-                //error
+                session.invalidate(errorMessage: "Secure Channel invalid.")
                 return
             }
             
@@ -303,15 +326,22 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
     }
 }
 
-// MARK: - useless
+// MARK: - showalertMessage
 extension FirstViewController {
+    func showMessage(_ alertTitle: String, _ alertMessage: String) {
+        DispatchQueue.main.async {
+            let alertController = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
+            alertController.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
+            self.present(alertController, animated: true, completion: nil)
+        }
+    }
     func showalertMessage(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
         if let readerError = error as? NFCReaderError {
             DispatchQueue.main.async {
                 // Show alert dialog box when the invalidation reason is not because of a read success from the single tag read mode,
                 // or user cancelled a multi-tag read mode session from the UI or programmatically using the invalidate method call.
                 let alertMessage = (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
-                && (readerError.code != .readerSessionInvalidationErrorUserCanceled) ? error.localizedDescription : session.alertMessage
+                && (readerError.code != .readerSessionInvalidationErrorUserCanceled) && (readerError.code != .readerTransceiveErrorTagConnectionLost) ? error.localizedDescription : session.alertMessage
                 let alertController = UIAlertController(title: "Session Invalidated", message: alertMessage, preferredStyle: .alert)
                 alertController.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
             

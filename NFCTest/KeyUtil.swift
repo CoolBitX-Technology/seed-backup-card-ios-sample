@@ -19,6 +19,14 @@ public enum APDU {
     // 80CC + [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [blocklength(1B,0~250)] [block(0~250B)]
 }
 
+public enum ErrorCode {
+    static let SUCCESS = "9000";
+    static let RESET_FIRST = "6330";
+    static let NO_DATA = "6370";
+    static let PING_CODE_NOT_MATCH = "6350";
+    static let CARD_IS_LOCKED = "6390";
+}
+
 public enum GenuineKey {
     static let SessionAppPrivateKey = KeyUtil.genPrivateKey()
     static let SessionAppPublicKey = KeyUtil.computePublicKey(fromPrivateKey: SessionAppPrivateKey, compression: false)

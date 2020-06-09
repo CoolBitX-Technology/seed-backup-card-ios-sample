@@ -142,16 +142,23 @@ class FirstViewController: UIViewController {
         for i in 0..<apdus.count {
             let apdu = NFCISO7816APDU.init(data: apdus[i])!
             tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
+                if let readerError = error as? NFCReaderError ,readerError.code == .readerTransceiveErrorTagConnectionLost {
+                    self.tagSession?.invalidate(errorMessage: "send command fail!")
+                }
+                
                 let sw1String = String(sw1, radix: 16)
                 let sw2String = String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0)
                 print("send APDU")
                 print("status    : \(sw1String)\(sw2String)")
-                print("message   : \(self.handleStatus(status: sw1String + sw2String))")
                 print("response  : \(response.hexEncodedString())")
                 result.append(response)
-                
-                if i == apdus.count - 1 {
+                if i == apdus.count - 1 && !result.isEmpty {
                     self.handleResponse(aes.decryptAES(data: result))
+                }
+                if sw1String + sw2String == "9000" {
+                    self.tagSession?.alertMessage = "setup APDU success!"
+                } else {
+                    self.tagSession?.invalidate(errorMessage: self.handleStatus(status: sw1String + sw2String))
                 }
             }
         }
@@ -161,33 +168,28 @@ class FirstViewController: UIViewController {
         var message = String()
         switch status {
         case ErrorCode.SUCCESS:
-            message = "SUCCESS"
+            message = "success"
             break
         case ErrorCode.RESET_FIRST:
-            message = "RESET FIRST"
+            message = "please reset first"
             break
             
         case ErrorCode.NO_DATA:
-            message = "NO DATA"
+            message = "no data"
             break
         case ErrorCode.PING_CODE_NOT_MATCH:
-            message = "PING CODE NOT MATCH"
+            message = "ping code not match"
             break
         case ErrorCode.CARD_IS_LOCKED:
-            message = "CARD IS LOCKED"
+            message = "card is locked"
             break
         default:
-            message = "OTHER"
             break
         }
         return message
     }
     
     func handleResponse(_ result: Data) {
-        if result.isEmpty {
-            print("result       : empty")
-            return
-        }
         print("result       : \(result.hexEncodedString())")
         print("hash         : \(result[0..<32].hexEncodedString())")
         print("salt         : \(result[32..<36].hexEncodedString())")
@@ -227,7 +229,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
                     return
                 }
                 print("connecting to Tag iso7816!")
-                self.setupSecureChannel(session,tag)
+                self.setupSecureChannel(tag)
             }
             return
         }
@@ -244,7 +246,7 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
 
     }
     
-    func setupSecureChannel(_ session: NFCTagReaderSession, _ tag: NFCISO7816Tag) {
+    func setupSecureChannel( _ tag: NFCISO7816Tag) {
         
         var secureChannelData = Data()
         secureChannelData.append(APDU.CHANNEL_ESTABLISH)
@@ -252,15 +254,24 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
         let apdu = NFCISO7816APDU.init(data: secureChannelData)!
         
         tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
-            print("setup SecureChannel!")
-            print("status    : \(String(sw1, radix: 16))\(String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0))")
-            print("response  : \(response.hexEncodedString())")
+            if let readerError = error as? NFCReaderError ,readerError.code == .readerTransceiveErrorTagConnectionLost {
+                self.tagSession?.invalidate(errorMessage: "send command fail!")
+            }
             
+            let sw1String = String(sw1, radix: 16)
+            let sw2String = String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0)
+            print("setup SecureChannel!")
+            print("status    : \(sw1String)\(sw2String)")
+            print("response  : \(response.hexEncodedString())")
+        
             guard response.count > 2 else {
-                session.invalidate(errorMessage: "Secure Channel invalid.")
+                self.tagSession?.invalidate(errorMessage: "Secure Channel invalid.")
                 return
             }
             
+            if sw1String + sw2String != "9000" {
+                self.tagSession?.invalidate(errorMessage: self.handleStatus(status: sw1String + sw2String))
+            }
             /* READ BINARY
              這個指令收到的回傳格式是：
              [installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (32B)] [testCipher(variable length)] 9000
@@ -328,21 +339,14 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
 
 // MARK: - showalertMessage
 extension FirstViewController {
-    func showMessage(_ alertTitle: String, _ alertMessage: String) {
-        DispatchQueue.main.async {
-            let alertController = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
-            alertController.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
-            self.present(alertController, animated: true, completion: nil)
-        }
-    }
     func showalertMessage(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        if let readerError = error as? NFCReaderError {
+        if let readerError = error as? NFCReaderError, (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
+        && (readerError.code != .readerSessionInvalidationErrorUserCanceled) {
             DispatchQueue.main.async {
                 // Show alert dialog box when the invalidation reason is not because of a read success from the single tag read mode,
                 // or user cancelled a multi-tag read mode session from the UI or programmatically using the invalidate method call.
-                let alertMessage = (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
-                && (readerError.code != .readerSessionInvalidationErrorUserCanceled) && (readerError.code != .readerTransceiveErrorTagConnectionLost) ? error.localizedDescription : session.alertMessage
-                let alertController = UIAlertController(title: "Session Invalidated", message: alertMessage, preferredStyle: .alert)
+                print("error code: \(readerError.code.rawValue),\(error.localizedDescription)")
+                let alertController = UIAlertController(title: "Session Invalidated", message: error.localizedDescription, preferredStyle: .alert)
                 alertController.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
             
                 self.present(alertController, animated: true, completion: nil)

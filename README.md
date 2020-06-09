@@ -44,6 +44,14 @@ You can see SecureChannel Commentary in SecureChannel.txt, implement in function
     static let CHANNEL_ESTABLISH = Data(hex: "80CE000041") 
     static let CHANNEL_COMMUNICATE = Data(hex: "80CC")
 }
+
+public enum ErrorCode {
+    static let SUCCESS = "9000";
+    static let RESET_FIRST = "6330";
+    static let NO_DATA = "6370";
+    static let PING_CODE_NOT_MATCH = "6350";
+    static let CARD_IS_LOCKED = "6390";
+}
 ```
 
 ### 1. Swift Package Dependencies

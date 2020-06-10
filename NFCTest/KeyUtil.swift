@@ -10,6 +10,30 @@ import UIKit
 import secp256k1
 import CryptoKit
 
+public enum TagReaderAction {
+    case backup
+    case restore
+    case reset
+}
+
+public struct TagReader {
+    var action: TagReaderAction
+    var password: String
+    var content: String
+    init(_ act: TagReaderAction,_ pwd: String,_ backupcontent: String) {
+        action = act
+        password = pwd
+        content = backupcontent
+    }
+}
+
+typealias returnResponse = (Result) -> Void
+
+public enum Result {
+    case success(String)
+    case error(String)
+}
+
 public enum APDU {
     static let BACKUP = Data(hex: "80320500")
     static let RESTORE = Data(hex: "80340000")

@@ -9,8 +9,8 @@ copyright:  coolbitX
 ```
 
 ## Support Devices
-- iPhone 7 / iPhone 7 Plus
-- iOS 13
+- iPhone 7 / iPhone 7 Plus and later
+- iOS 13 and later
 
 ## Requirements
 - Add NFC capabilities to your project.

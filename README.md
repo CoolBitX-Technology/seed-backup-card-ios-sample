@@ -19,12 +19,12 @@ copyright:  coolbitX
   ```
   <key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>  
   <array>  
-  <string>C1C2C3C5C6</string>  
+  <string>C1C2C3C4C5C6</string>  
   </array>  
  
   ```
 
-  C1C2C3C5C6 is the AID of the NFC chip.
+  C1C2C3C4C5C6 is the AID of the NFC chip.
 
 - Setting Swift Package in Xcode
   1. Open Xcode > Click Xcode in header > File > Swift Packages > Add Packages Dependency...

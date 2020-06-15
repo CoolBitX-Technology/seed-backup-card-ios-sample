@@ -10,6 +10,30 @@ import UIKit
 import secp256k1
 import CryptoKit
 
+public enum TagReaderAction {
+    case backup
+    case restore
+    case reset
+}
+
+public struct TagReader {
+    var action: TagReaderAction
+    var password: String
+    var content: String
+    init(_ act: TagReaderAction,_ pwd: String,_ backupcontent: String) {
+        action = act
+        password = pwd
+        content = backupcontent
+    }
+}
+
+typealias returnResponse = (Result) -> Void
+
+public enum Result {
+    case success(String)
+    case error(String)
+}
+
 public enum APDU {
     static let BACKUP = Data(hex: "80320500")
     static let RESTORE = Data(hex: "80340000")
@@ -17,6 +41,14 @@ public enum APDU {
     static let CHANNEL_ESTABLISH = Data(hex: "80CE000041") // apduHeader + 長度41是16進位 + PublicKey
     static let CHANNEL_COMMUNICATE = Data(hex: "80CC")
     // 80CC + [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [blocklength(1B,0~250)] [block(0~250B)]
+}
+
+public enum ErrorCode {
+    static let SUCCESS = "9000";
+    static let RESET_FIRST = "6330";
+    static let NO_DATA = "6370";
+    static let PING_CODE_NOT_MATCH = "6350";
+    static let CARD_IS_LOCKED = "6390";
 }
 
 public enum GenuineKey {

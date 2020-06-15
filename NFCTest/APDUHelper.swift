@@ -1,5 +1,5 @@
 //
-//  FirstViewController.swift
+//  APDUHelper.swift
 //  NFCTest
 //
 //  Created by Ed on 2019/11/19.
@@ -9,90 +9,31 @@
 import UIKit
 import CoreNFC
 
-enum TagReaderAction {
-    case backup
-    case restore
-    case reset
-}
-
-class FirstViewController: UIViewController {
+class APDUHelper: NSObject {
+    var completionHelper: returnResponse?
     
-    var action: TagReaderAction?
-    var tagSession: NFCTagReaderSession?
-    //CWS卡片的Tag可能是MIFARE DESFire，依循ISO/IEC 14443
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view.
-    }
-    
-    func readTag() {
-
-//        tagSession?.invalidate()
-        tagSession = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: nil)
-        tagSession?.alertMessage = "Hold your iPhone near the item to learn more about it."
-        tagSession?.begin()
-        
-    }
-    
-    @IBAction func restoreTagReaderAction(_ sender: Any) {
-        print("")
-        print("restore start")
-        action = .restore
-        readTag()
-    }
-    
-    @IBAction func resetTagReaderAction(_ sender: Any) {
-        print("")
-        print("reset start")
-        action = .reset
-        readTag()
-    }
-    
-    @IBAction func backupTagReaderAction(_ sender: Any) {
-        print("")
-        print("backup start")
-        action = .backup
-        readTag()
-    }
-    
-    func exe(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
-        switch self.action {
-        case .reset:
-            self.reset(tag, aes: aes)
-        case .restore:
-            self.restore(tag, aes: aes)
-        case .backup:
-            self.backup(tag, aes: aes)
-        case .none:
-            break
-        }
-    }
-    
-    let testPassword = "testPassword"
-    let testContent = "testContent"
-    
-    func restore(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
+    private func restore(_ tag: NFCISO7816Tag, aes: CryptoUtil, tagReader: TagReader) {
         let apduHeader = APDU.RESTORE
-        let apduData = KeyUtil.sha256(data: testPassword.data(using: .utf8)!)
+        let apduData = KeyUtil.sha256(data: tagReader.password.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
         sendAPDU(tag, aes: aes, apdus: apdus)
     }
     
-    func reset(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
+    private func reset(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
         let apduHeader = APDU.RESET
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
         sendAPDU(tag, aes: aes, apdus: apdus)
     }
     
-    func backup(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
+    private func backup(_ tag: NFCISO7816Tag, aes: CryptoUtil, tagReader: TagReader) {
         let apduHeader = APDU.BACKUP
-        var apduData = KeyUtil.sha256(data: testPassword.data(using: .utf8)!)
-        apduData.append(testContent.data(using: .utf8)!)
+        var apduData = KeyUtil.sha256(data: tagReader.password.data(using: .utf8)!)
+        apduData.append(tagReader.content.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
         sendAPDU(tag, aes: aes, apdus: apdus)
     }
     
-    func prepareAPDU(aes: CryptoUtil, apduHeader: Data, apduData: Data?) -> [Data] {
+    private func prepareAPDU(aes: CryptoUtil, apduHeader: Data, apduData: Data?) -> [Data] {
         var apduCommands = [Data]()
         
         var bytes = [UInt8](repeating: 0, count: 4)
@@ -139,105 +80,101 @@ class FirstViewController: UIViewController {
         
         return apduCommands
     }
-
-    func sendAPDU(_ tag: NFCISO7816Tag, aes: CryptoUtil, apdus: [Data]) {
+    
+    private func sendAPDU(_ tag: NFCISO7816Tag, aes: CryptoUtil, apdus: [Data]) {
         var result = Data()
         for i in 0..<apdus.count {
             let apdu = NFCISO7816APDU.init(data: apdus[i])!
             tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
+                if let readerError = error as? NFCReaderError ,readerError.code == .readerTransceiveErrorTagConnectionLost {
+                    if let completion = self.completionHelper {
+                        completion(.error("tag connection lost!"))
+                    }
+                    return
+                }
+                
                 let sw1String = String(sw1, radix: 16)
                 let sw2String = String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0)
+                print("send APDU")
                 print("status    : \(sw1String)\(sw2String)")
                 print("response  : \(response.hexEncodedString())")
                 result.append(response)
-                
-                if i == apdus.count - 1 {
+                if i == apdus.count - 1 && !result.isEmpty {
                     self.handleResponse(aes.decryptAES(data: result))
+                }
+                
+                if let completion = self.completionHelper {
+                    completion((sw1String + sw2String == "9000") ? .success("success!") : .error(self.handleStatus(status: sw1String + sw2String)))
                 }
             }
         }
     }
     
-    func handleResponse(_ result: Data) {
+    private func handleStatus(status: String) -> String {
+        var message = String()
+        switch status {
+        case ErrorCode.SUCCESS:
+            message = "success"
+            break
+        case ErrorCode.RESET_FIRST:
+            message = "please reset first"
+            break
+            
+        case ErrorCode.NO_DATA:
+            message = "no data"
+            break
+        case ErrorCode.PING_CODE_NOT_MATCH:
+            message = "ping code not match"
+            break
+        case ErrorCode.CARD_IS_LOCKED:
+            message = "card is locked"
+            break
+        default:
+            break
+        }
+        return message
+    }
+    
+    private func handleResponse(_ result: Data) {
         print("result       : \(result.hexEncodedString())")
         print("hash         : \(result[0..<32].hexEncodedString())")
         print("salt         : \(result[32..<36].hexEncodedString())")
         print("data in utf8 : \(result[36..<result.count].dataToStr())")
     }
-}
-
-// MARK: - Tag Reader delegate
-extension FirstViewController: NFCTagReaderSessionDelegate {
     
-    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-        print("Tag reader active")
-    }
-//    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-//        print("Tag reader active")
-//    }
-    
-    func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        print("didInvalidateWithError")
-        showalertMessage(session, didInvalidateWithError: error)
-    }
-    
-    func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
-        print("Detect tag!")
-        if tags.count > 1 {
-            // Restart polling in 500ms
-            let retryInterval = DispatchTimeInterval.milliseconds(500)
-            session.alertMessage = "More than 1 tag is detected, please remove all tags and try again."
-            DispatchQueue.global().asyncAfter(deadline: .now() + retryInterval, execute: {
-                session.restartPolling()
-            })
-            return
-        }
-        
-        if case let .iso7816(tag) = tags.first! {
-            session.connect(to: tags.first!) { (error: Error?) in
-                if error != nil {
-                    print("connect tag error:\(String(describing: error))")
-                    session.invalidate(errorMessage: "Connection iso7816 error. Please try again.")
-                    return
-                }
-                print("connecting to Tag iso7816!")
-                self.setupSecureChannel(tag)
-            }
-            return
-        }
-        
-        if case .miFare(_) = tags.first! {
-            session.invalidate(errorMessage: "miFare tag.")
-        } else if case .feliCa(_) = tags.first! {
-            session.invalidate(errorMessage: "feliCa tag.")
-        } else if case .iso15693(_) = tags.first! {
-            session.invalidate(errorMessage: "iso15693 tag.")
-        } else {
-            session.invalidate(errorMessage: "unknown tag.")
-        }
-
-    }
-    
-    func setupSecureChannel(_ tag: NFCISO7816Tag) {
-        
+    func setupSecureChannel( _ tag: NFCISO7816Tag, tagReader: TagReader) {
         var secureChannelData = Data()
         secureChannelData.append(APDU.CHANNEL_ESTABLISH)
         secureChannelData.append(GenuineKey.SessionAppPublicKey)
         let apdu = NFCISO7816APDU.init(data: secureChannelData)!
         
         tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
-            
-            print("status    : \(String(sw1, radix: 16))\(String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0))")
-            print("response  : \(response.hexEncodedString())")
-            
-            /*guard error != nil && !(sw1 == 0x90 && sw2 == 0) else {
-                return
-            }*/
-            guard response.count > 2 else {
-                //error
+            if let readerError = error as? NFCReaderError ,readerError.code == .readerTransceiveErrorTagConnectionLost {
+                if let completion = self.completionHelper {
+                    completion(.error("tag connection lost!"))
+                }
                 return
             }
             
+            let sw1String = String(sw1, radix: 16)
+            let sw2String = String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0)
+            print("setup secure channel!")
+            print("status    : \(sw1String)\(sw2String)")
+            print("response  : \(response.hexEncodedString())")
+            
+            guard response.count > 2 else {
+                if let completion = self.completionHelper {
+                    completion(.error("secure channel invalid."))
+                }
+                return
+            }
+            
+            if sw1String + sw2String != "9000" {
+                if let completion = self.completionHelper {
+                    completion(.error(self.handleStatus(status: sw1String + sw2String)))
+                }
+                return
+            }
             /* READ BINARY
              這個指令收到的回傳格式是：
              [installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (32B)] [testCipher(variable length)] 9000
@@ -262,23 +199,23 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
             var publicKey = Data()
             var chainCode = Data()
             switch (installType) {
-                case "0000":
-                    publicKey = GenuineKey.GenuineMasterPublicKey_NonInstalled;
-                    chainCode = GenuineKey.GenuineMasterChainCode_NonInstalled;
-                    break
-                case "0001":
-                    publicKey = GenuineKey.GenuineMasterPublicKey_Test;
-                    chainCode = GenuineKey.GenuineMasterChainCode_Test;
-                    break
-                // add case "0002" here for real HSM key.
-                default:
-                    break
+            case "0000":
+                publicKey = GenuineKey.GenuineMasterPublicKey_NonInstalled;
+                chainCode = GenuineKey.GenuineMasterChainCode_NonInstalled;
+                break
+            case "0001":
+                publicKey = GenuineKey.GenuineMasterPublicKey_Test;
+                chainCode = GenuineKey.GenuineMasterChainCode_Test;
+                break
+            // add case "0002" here for real HSM key.
+            default:
+                break
             }
             
             publicKey = KeyUtil.compressPublicKey(publicKey: publicKey)
             print("pubkey  :", publicKey.hexEncodedString())
             print("chain   :", chainCode.hexEncodedString())
-
+            
             (publicKey, chainCode) = KeyUtil.derived(publicKey: publicKey, chainCode: chainCode, indexData: cardName)
             publicKey = KeyUtil.compressPublicKey(publicKey: publicKey)
             print("pubkey  :", publicKey.hexEncodedString())
@@ -298,25 +235,15 @@ extension FirstViewController: NFCTagReaderSessionDelegate {
             let result = aes.decryptAES(data: testCipher)
             print("result  :", result.hexEncodedString())
             
-            self.exe(tag, aes: aes)
-        }
-    }
-}
-
-// MARK: - useless
-extension FirstViewController {
-    func showalertMessage(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        if let readerError = error as? NFCReaderError {
-            DispatchQueue.main.async {
-                // Show alert dialog box when the invalidation reason is not because of a read success from the single tag read mode,
-                // or user cancelled a multi-tag read mode session from the UI or programmatically using the invalidate method call.
-                let alertMessage = (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
-                && (readerError.code != .readerSessionInvalidationErrorUserCanceled) ? error.localizedDescription : session.alertMessage
-                let alertController = UIAlertController(title: "Session Invalidated", message: alertMessage, preferredStyle: .alert)
-                alertController.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
-            
-                self.present(alertController, animated: true, completion: nil)
+            switch tagReader.action {
+            case .reset:
+                self.reset(tag, aes: aes)
+            case .restore:
+                self.restore(tag, aes: aes, tagReader: tagReader)
+            case .backup:
+                self.backup(tag, aes: aes, tagReader: tagReader)
             }
         }
     }
+    
 }

@@ -7,15 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B07F0492490B17200DA9755 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 0B07F0482490B17200DA9755 /* secp256k1 */; };
+		0B07F04B2490BA7600DA9755 /* DemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B07F04A2490BA7600DA9755 /* DemoViewController.swift */; };
 		0B56936824443A9200AE714E /* Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B56936724443A9200AE714E /* Extension.swift */; };
-		246F63802489419600EEDAB8 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 246F637F2489419600EEDAB8 /* secp256k1 */; };
-		250ED63824841B6C00E4927D /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 250ED63724841B6C00E4927D /* CryptoSwift */; };
+		0BCB65F2248F2A5D008CD051 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0BCB65F1248F2A5D008CD051 /* CryptoSwift */; };
 		250ED63A2484B09900E4927D /* CryptoUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250ED6392484B09900E4927D /* CryptoUtil.swift */; };
 		250ED63C2484B32B00E4927D /* KeyUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250ED63B2484B32B00E4927D /* KeyUtil.swift */; };
 		64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FD2383EDB900CD65D3 /* AppDelegate.swift */; };
 		64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */; };
-		64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C148012383EDB900CD65D3 /* FirstViewController.swift */; };
-		64C148042383EDB900CD65D3 /* SecondViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C148032383EDB900CD65D3 /* SecondViewController.swift */; };
+		64C148022383EDB900CD65D3 /* APDUHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C148012383EDB900CD65D3 /* APDUHelper.swift */; };
 		64C148072383EDB900CD65D3 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 64C148052383EDB900CD65D3 /* Main.storyboard */; };
 		64C1480A2383EDB900CD65D3 /* NFCTest.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 64C148082383EDB900CD65D3 /* NFCTest.xcdatamodeld */; };
 		64C1480C2383EDBB00CD65D3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 64C1480B2383EDBB00CD65D3 /* Assets.xcassets */; };
@@ -42,14 +42,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0B07F04A2490BA7600DA9755 /* DemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoViewController.swift; sourceTree = "<group>"; };
 		0B56936724443A9200AE714E /* Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extension.swift; sourceTree = "<group>"; };
 		250ED6392484B09900E4927D /* CryptoUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtil.swift; sourceTree = "<group>"; };
 		250ED63B2484B32B00E4927D /* KeyUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyUtil.swift; sourceTree = "<group>"; };
 		64C147FA2383EDB900CD65D3 /* NFCTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NFCTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		64C147FD2383EDB900CD65D3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		64C148012383EDB900CD65D3 /* FirstViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstViewController.swift; sourceTree = "<group>"; };
-		64C148032383EDB900CD65D3 /* SecondViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondViewController.swift; sourceTree = "<group>"; };
+		64C148012383EDB900CD65D3 /* APDUHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APDUHelper.swift; sourceTree = "<group>"; };
 		64C148062383EDB900CD65D3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		64C148092383EDB900CD65D3 /* NFCTest.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = NFCTest.xcdatamodel; sourceTree = "<group>"; };
 		64C1480B2383EDBB00CD65D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -69,8 +69,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				250ED63824841B6C00E4927D /* CryptoSwift in Frameworks */,
-				246F63802489419600EEDAB8 /* secp256k1 in Frameworks */,
+				0BCB65F2248F2A5D008CD051 /* CryptoSwift in Frameworks */,
+				0B07F0492490B17200DA9755 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,8 +117,8 @@
 				64C14832238400C400CD65D3 /* NFCTest.entitlements */,
 				64C147FD2383EDB900CD65D3 /* AppDelegate.swift */,
 				64C147FF2383EDB900CD65D3 /* SceneDelegate.swift */,
-				64C148012383EDB900CD65D3 /* FirstViewController.swift */,
-				64C148032383EDB900CD65D3 /* SecondViewController.swift */,
+				0B07F04A2490BA7600DA9755 /* DemoViewController.swift */,
+				64C148012383EDB900CD65D3 /* APDUHelper.swift */,
 				64C148052383EDB900CD65D3 /* Main.storyboard */,
 				64C1480B2383EDBB00CD65D3 /* Assets.xcassets */,
 				64C1480D2383EDBB00CD65D3 /* LaunchScreen.storyboard */,
@@ -166,8 +166,8 @@
 			);
 			name = NFCTest;
 			packageProductDependencies = (
-				250ED63724841B6C00E4927D /* CryptoSwift */,
-				246F637F2489419600EEDAB8 /* secp256k1 */,
+				0BCB65F1248F2A5D008CD051 /* CryptoSwift */,
+				0B07F0482490B17200DA9755 /* secp256k1 */,
 			);
 			productName = NFCTest;
 			productReference = 64C147FA2383EDB900CD65D3 /* NFCTest.app */;
@@ -242,8 +242,8 @@
 			);
 			mainGroup = 64C147F12383EDB900CD65D3;
 			packageReferences = (
-				250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */,
-				246F637E2489419600EEDAB8 /* XCRemoteSwiftPackageReference "secp256k1" */,
+				0BCB65F0248F2A5D008CD051 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+				0B07F0472490B17200DA9755 /* XCRemoteSwiftPackageReference "secp256k1" */,
 			);
 			productRefGroup = 64C147FB2383EDB900CD65D3 /* Products */;
 			projectDirPath = "";
@@ -288,14 +288,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				64C148042383EDB900CD65D3 /* SecondViewController.swift in Sources */,
 				250ED63A2484B09900E4927D /* CryptoUtil.swift in Sources */,
-				64C148022383EDB900CD65D3 /* FirstViewController.swift in Sources */,
+				64C148022383EDB900CD65D3 /* APDUHelper.swift in Sources */,
 				64C147FE2383EDB900CD65D3 /* AppDelegate.swift in Sources */,
 				0B56936824443A9200AE714E /* Extension.swift in Sources */,
 				64C1480A2383EDB900CD65D3 /* NFCTest.xcdatamodeld in Sources */,
 				64C148002383EDB900CD65D3 /* SceneDelegate.swift in Sources */,
 				250ED63C2484B32B00E4927D /* KeyUtil.swift in Sources */,
+				0B07F04B2490BA7600DA9755 /* DemoViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -630,15 +630,15 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		246F637E2489419600EEDAB8 /* XCRemoteSwiftPackageReference "secp256k1" */ = {
+		0B07F0472490B17200DA9755 /* XCRemoteSwiftPackageReference "secp256k1" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/CoolBitX-Technology/secp256k1.swift";
+			repositoryURL = "https://github.com/CoolBitX-Technology/secp256k1.swift/";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.6;
+				minimumVersion = 0.1.7;
 			};
 		};
-		250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
+		0BCB65F0248F2A5D008CD051 /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift.git";
 			requirement = {
@@ -649,14 +649,14 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		246F637F2489419600EEDAB8 /* secp256k1 */ = {
+		0B07F0482490B17200DA9755 /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 246F637E2489419600EEDAB8 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			package = 0B07F0472490B17200DA9755 /* XCRemoteSwiftPackageReference "secp256k1" */;
 			productName = secp256k1;
 		};
-		250ED63724841B6C00E4927D /* CryptoSwift */ = {
+		0BCB65F1248F2A5D008CD051 /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 250ED63624841B6C00E4927D /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			package = 0BCB65F0248F2A5D008CD051 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
 			productName = CryptoSwift;
 		};
 /* End XCSwiftPackageProductDependency section */

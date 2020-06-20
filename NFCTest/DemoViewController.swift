@@ -48,10 +48,10 @@ class DemoViewController: UIViewController {
 // MARK: - IBAction
 extension DemoViewController {
     @IBAction func restoreTagReaderAction(_ sender: Any) {
-        print("restore start")
-        outputLabel.text = ""
+        outputLabel.text = "restore start!"
         guard let pwd = pwdText.text,pwd.count > 0 else {
-            showAlertMessage("restore","pwd empty")
+            showAlertMessage("restore","pinCode empty")
+            outputLabel.text = "restore pinCode empty!"
             return
         }
         tagReader = TagReader(.restore,pwd,"")
@@ -59,21 +59,21 @@ extension DemoViewController {
     }
     
     @IBAction func resetTagReaderAction(_ sender: Any) {
-        print("reset start")
-        outputLabel.text = ""
+        outputLabel.text = "reset start!"
         tagReader = TagReader(.reset,"","")
         readTag()
     }
     
     @IBAction func backupTagReaderAction(_ sender: Any) {
-        print("backup start")
-        outputLabel.text = ""
+        outputLabel.text = "backup start!"
         guard let pwd = pwdText.text,pwd.count > 0 else {
-            showAlertMessage("backup","pwd empty")
+            showAlertMessage("backup","pinCode empty")
+            outputLabel.text = "backup pinCode empty!"
             return
         }
         guard let content = contentText.text,content.count > 0 else {
             showAlertMessage("backup","content empty")
+            outputLabel.text = "backup content empty!"
             return
         }
         tagReader = TagReader(.backup,pwd,content)
@@ -117,6 +117,7 @@ extension DemoViewController: NFCTagReaderSessionDelegate {
                     switch result {
                     case .success(let message):
                         self.tagSession?.alertMessage = message
+                        self.tagSession?.invalidate()
                         DispatchQueue.main.async {
                             self.outputLabel.text = message
                         }

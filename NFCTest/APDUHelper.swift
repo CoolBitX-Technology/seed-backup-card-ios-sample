@@ -16,13 +16,21 @@ class APDUHelper: NSObject {
         let apduHeader = APDU.RESTORE
         let apduData = KeyUtil.sha256(data: tagReader.password.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
-        sendAPDU(tag, aes: aes, apdus: apdus)
+        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, response in
+            if let completion = self.completionHelper {
+                completion((status == "9000") ? .success("restore success: " + response) : .error("restore error: " + self.handleStatus(status: status)))
+            }
+        })
     }
     
     private func reset(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
         let apduHeader = APDU.RESET
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
-        sendAPDU(tag, aes: aes, apdus: apdus)
+        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, response in
+            if let completion = self.completionHelper {
+                completion((status == "9000") ? .success("reset success!") : .error("reset error: " + self.handleStatus(status: status)))
+            }
+        })
     }
     
     private func backup(_ tag: NFCISO7816Tag, aes: CryptoUtil, tagReader: TagReader) {
@@ -30,7 +38,11 @@ class APDUHelper: NSObject {
         var apduData = KeyUtil.sha256(data: tagReader.password.data(using: .utf8)!)
         apduData.append(tagReader.content.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
-        sendAPDU(tag, aes: aes, apdus: apdus)
+        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, response in
+            if let completion = self.completionHelper {
+                completion((status == "9000") ? .success("backup success!") : .error("backup error: " +  self.handleStatus(status: status)))
+            }
+        })
     }
     
     private func prepareAPDU(aes: CryptoUtil, apduHeader: Data, apduData: Data?) -> [Data] {
@@ -81,7 +93,7 @@ class APDUHelper: NSObject {
         return apduCommands
     }
     
-    private func sendAPDU(_ tag: NFCISO7816Tag, aes: CryptoUtil, apdus: [Data]) {
+    private func sendAPDU(_ tag: NFCISO7816Tag, aes: CryptoUtil, apdus: [Data],completion: @escaping (String,String) -> Void) {
         var result = Data()
         for i in 0..<apdus.count {
             let apdu = NFCISO7816APDU.init(data: apdus[i])!
@@ -103,9 +115,7 @@ class APDUHelper: NSObject {
                     self.handleResponse(aes.decryptAES(data: result))
                 }
                 
-                if let completion = self.completionHelper {
-                    completion((sw1String + sw2String == "9000") ? .success("success!") : .error(self.handleStatus(status: sw1String + sw2String)))
-                }
+                completion(sw1String + sw2String,self.restoreResponse(aes.decryptAES(data: result)))
             }
         }
     }
@@ -140,6 +150,10 @@ class APDUHelper: NSObject {
         print("hash         : \(result[0..<32].hexEncodedString())")
         print("salt         : \(result[32..<36].hexEncodedString())")
         print("data in utf8 : \(result[36..<result.count].dataToStr())")
+    }
+    
+    private func restoreResponse(_ result: Data) -> String {
+        return result.isEmpty ? String() : result[36..<result.count].dataToStr()
     }
     
     func setupSecureChannel( _ tag: NFCISO7816Tag, tagReader: TagReader) {

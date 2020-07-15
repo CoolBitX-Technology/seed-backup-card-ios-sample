@@ -11,18 +11,36 @@ import CoreNFC
 
 class DemoViewController: UIViewController {
     
-    var tagReader: TagReader?
+    var command: Command?
     var apduHelper: APDUHelper = APDUHelper()
     var tagSession: NFCTagReaderSession?
+    var selectedFeature: Feature?
+    let features = [Feature.Info,Feature.Backup,Feature.Restore,Feature.Reset]
+    let picker: UIPickerView = UIPickerView()
     
     @IBOutlet weak var contentText: UITextField!
     @IBOutlet weak var pwdText: UITextField!
     @IBOutlet weak var outputLabel: UILabel!
+    @IBOutlet weak var featureText: UITextField!
+    @IBOutlet weak var pwdTextView: UIView!
+    @IBOutlet weak var contentTextView: UIView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         let tap = UITapGestureRecognizer.init(target: self, action: #selector(dismissKeyboard))
         view.addGestureRecognizer(tap)
+        setupMenu()
+    }
+    
+    func setupMenu() {
+        featureText.delegate = self
+        featureText.tintColor = UIColor.clear
+        featureText.rightViewMode = .always
+        featureText.rightView = UIImageView(image: UIImage(named: "arrow_down"))
+        picker.dataSource = self
+        picker.delegate = self
+        featureText.inputView = picker
     }
     
     @objc func dismissKeyboard() {
@@ -43,43 +61,87 @@ class DemoViewController: UIViewController {
         }
     }
 
+    @IBAction func nfcClicked(_ sender: Any) {
+        guard let feature = self.selectedFeature else {
+            outputLabel.text = "select feature!"
+            return
+        }
+        
+        guard checkpwd() else {
+            showAlertMessage(feature.rawValue,"pin empty")
+            outputLabel.text = "\(feature.rawValue) pin empty!"
+            return
+        }
+        
+        guard checkcontent() else {
+            showAlertMessage(feature.rawValue,"content empty")
+            outputLabel.text = "\(feature.rawValue) content empty!"
+            return
+        }
+        
+        outputLabel.text = "\(feature.rawValue) TagReader!"
+        command = Command(feature,pwdText.text!,contentText.text!)
+        readTag()
+    }
+    
+    func checkpwd() -> Bool {
+        if pwdTextView.isHidden {
+            return true
+        }
+        
+        if let pwd = pwdText.text,pwd.count > 0 {
+            return true
+        }
+        return false
+    }
+    
+    func checkcontent() -> Bool {
+        if contentTextView.isHidden {
+            return true
+        }
+        
+        if let content = contentText.text,content.count > 0 {
+            return true
+        }
+        return false
+    }
+    
+    func selectedFeature(_ feature: Feature) {
+        selectedFeature = feature
+        featureText.text = feature.rawValue
+        pwdTextView.isHidden = feature == .Reset
+        contentTextView.isHidden = feature != .Backup
+        outputLabel.text = ""
+    }
+
+}
+// MARK: - UITextFieldDelegate
+extension DemoViewController: UITextFieldDelegate {
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        return false
+    }
+}
+// MARK: - picker dataSource
+extension DemoViewController: UIPickerViewDataSource {
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return features.count
+    }
 }
 
-// MARK: - IBAction
-extension DemoViewController {
-    @IBAction func restoreTagReaderAction(_ sender: Any) {
-        outputLabel.text = "restore start!"
-        guard let pwd = pwdText.text,pwd.count > 0 else {
-            showAlertMessage("restore","pinCode empty")
-            outputLabel.text = "restore pinCode empty!"
-            return
-        }
-        tagReader = TagReader(.restore,pwd,"")
-        readTag()
+// MARK: - picker delegate
+extension DemoViewController: UIPickerViewDelegate {
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int)
+    -> String? {
+        return features[row].rawValue
     }
     
-    @IBAction func resetTagReaderAction(_ sender: Any) {
-        outputLabel.text = "reset start!"
-        tagReader = TagReader(.reset,"","")
-        readTag()
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        selectedFeature(features[row])
     }
-    
-    @IBAction func backupTagReaderAction(_ sender: Any) {
-        outputLabel.text = "backup start!"
-        guard let pwd = pwdText.text,pwd.count > 0 else {
-            showAlertMessage("backup","pinCode empty")
-            outputLabel.text = "backup pinCode empty!"
-            return
-        }
-        guard let content = contentText.text,content.count > 0 else {
-            showAlertMessage("backup","content empty")
-            outputLabel.text = "backup content empty!"
-            return
-        }
-        tagReader = TagReader(.backup,pwd,content)
-        readTag()
-    }
-    
 }
 
 // MARK: - Tag Reader delegate
@@ -95,8 +157,13 @@ extension DemoViewController: NFCTagReaderSessionDelegate {
         // or user cancelled a multi-tag read mode session from the UI or programmatically using the invalidate method call.
         if let readerError = error as? NFCReaderError {
             print("error code=\(readerError.code.rawValue),\(error.localizedDescription)")
-            if (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
-                && (readerError.code != .readerSessionInvalidationErrorUserCanceled) {
+            if readerError.code == .readerSessionInvalidationErrorUserCanceled {
+                DispatchQueue.main.async {
+                    self.outputLabel.text = "\(self.selectedFeature!.rawValue) Canceled!"
+                }
+                return
+            }
+            if (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead) {
                 showAlertMessage("Session Invalidated", error.localizedDescription)
             }
         }
@@ -130,8 +197,8 @@ extension DemoViewController: NFCTagReaderSessionDelegate {
                         break
                     }
                 }
-                if let tagReader = self.tagReader {
-                    self.apduHelper.setupSecureChannel(tag, tagReader: tagReader)
+                if let command = self.command {
+                    self.apduHelper.setupSecureChannel(tag, command: command)
                 }
             }
             return

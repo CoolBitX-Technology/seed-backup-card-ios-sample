@@ -10,18 +10,19 @@ import UIKit
 import secp256k1
 import CryptoKit
 
-public enum TagReaderAction {
-    case backup
-    case restore
-    case reset
+public enum Feature: String {
+    case Info = "info"
+    case Backup = "back"
+    case Restore = "restore"
+    case Reset = "reset"
 }
 
-public struct TagReader {
-    var action: TagReaderAction
+public struct Command {
+    var feature: Feature
     var password: String
     var content: String
-    init(_ act: TagReaderAction,_ pwd: String,_ backupcontent: String) {
-        action = act
+    init(_ fe: Feature,_ pwd: String,_ backupcontent: String) {
+        feature = fe
         password = pwd
         content = backupcontent
     }

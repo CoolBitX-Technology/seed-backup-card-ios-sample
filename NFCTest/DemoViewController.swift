@@ -31,6 +31,7 @@ class DemoViewController: UIViewController {
         let tap = UITapGestureRecognizer.init(target: self, action: #selector(dismissKeyboard))
         view.addGestureRecognizer(tap)
         setupMenu()
+        selectedFeature(Feature.Info)
     }
     
     func setupMenu() {
@@ -48,6 +49,7 @@ class DemoViewController: UIViewController {
     }
     
     func readTag() {
+        dismissKeyboard()
         tagSession = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: nil)
         tagSession?.alertMessage = "Hold your iPhone near the item to learn more about it."
         tagSession?.begin()
@@ -79,7 +81,6 @@ class DemoViewController: UIViewController {
             return
         }
         
-        outputLabel.text = "\(feature.rawValue) TagReader!"
         command = Command(feature,pwdText.text!,contentText.text!)
         readTag()
     }
@@ -109,7 +110,7 @@ class DemoViewController: UIViewController {
     func selectedFeature(_ feature: Feature) {
         selectedFeature = feature
         featureText.text = feature.rawValue
-        pwdTextView.isHidden = feature == .Reset
+        pwdTextView.isHidden = (feature == .Reset) || (feature == .Info)
         contentTextView.isHidden = feature != .Backup
         outputLabel.text = ""
     }
@@ -158,13 +159,11 @@ extension DemoViewController: NFCTagReaderSessionDelegate {
         if let readerError = error as? NFCReaderError {
             print("error code=\(readerError.code.rawValue),\(error.localizedDescription)")
             if readerError.code == .readerSessionInvalidationErrorUserCanceled {
-                DispatchQueue.main.async {
-                    self.outputLabel.text = "\(self.selectedFeature!.rawValue) Canceled!"
-                }
-                return
+                print("User Canceled:,\(error.localizedDescription)")
             }
             if (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead) {
-                showAlertMessage("Session Invalidated", error.localizedDescription)
+                print("\(error.localizedDescription)")
+                //showAlertMessage("Session Invalidated", error.localizedDescription)
             }
         }
         

@@ -45,10 +45,15 @@ class APDUHelper: NSObject {
         })
     }
     
-    private func info() {
-        if let completion = self.completionHelper {
-            completion(.error("info error: todo "))
-        }
+    private func info(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
+        let apduHeader = APDU.INFO
+        let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
+        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, response in
+            if let completion = self.completionHelper {
+                // todo: parse
+                completion((status == "9000") ? .success("info success!") : .error("reset error: " + self.handleStatus(status: status)))
+            }
+        })
     }
     
     private func prepareAPDU(aes: CryptoUtil, apduHeader: Data, apduData: Data?) -> [Data] {
@@ -273,7 +278,7 @@ class APDUHelper: NSObject {
             case .Backup:
                 self.backup(tag, aes: aes, command: command)
             case .Info:
-                self.info()
+                self.info(tag, aes: aes)
             }
         }
     }

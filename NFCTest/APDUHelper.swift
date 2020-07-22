@@ -118,7 +118,12 @@ class APDUHelper: NSObject {
                 print("response  : \(response.hexEncodedString())")
                 result.append(response)
                 if i == apdus.count - 1 && !result.isEmpty {
-                    self.handleResponse(aes.decryptAES(data: result))
+                    let partialIndex = result.popFirst()
+                    print("partialIndex  :", partialIndex!)
+                    let partialNumber = result.popFirst()
+                    print("partialNumber :", partialNumber!)
+                    let data = aes.decryptAES(data: result)
+                    self.handleResponse(data)
                 }
                 
                 completion(sw1String + sw2String,self.restoreResponse(aes.decryptAES(data: result)))
@@ -197,7 +202,7 @@ class APDUHelper: NSObject {
             }
             /* READ BINARY
              這個指令收到的回傳格式是：
-             [installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (32B)] [testCipher(variable length)] 9000
+             [installType(2B)] [cardNameLength(2B)] [cardName (length=cardNameLength,ASCII)] [nonce (4B)] [testCipher(variable length)] 9000
              */
             let installType = response[0..<2].hexEncodedString()
             print("installType    :", installType)
@@ -206,13 +211,18 @@ class APDUHelper: NSObject {
             print("cardNameLength :", cardNameLength)
             let offset = 4 + Int(cardNameLength, radix: 16)!
             
-            let cardName = response[4..<offset]
+            var cardName = response[4..<offset]
             print("cardName       :", cardName.hexEncodedString())
+            cardName = KeyUtil.sha256(data: cardName)[0..<4]
+            if cardName.bytes[0] > 127 {
+                cardName = Data([127]) + cardName[1..<4]
+            }
+            print("cardNameHash   :", cardName.hexEncodedString())
             
-            let nonce = response[offset..<offset+32]
+            let nonce = response[offset..<offset+4]
             print("nonce          :", nonce.hexEncodedString())
             
-            let testCipher = response[offset+32..<response.count]
+            let testCipher = response[offset+4..<response.count]
             print("testCipher     :", testCipher.hexEncodedString())
             print("")
             

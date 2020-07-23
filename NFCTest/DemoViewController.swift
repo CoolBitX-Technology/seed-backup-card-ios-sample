@@ -49,6 +49,7 @@ class DemoViewController: UIViewController {
     }
     
     func readTag() {
+        outputLabel.text = ""
         dismissKeyboard()
         tagSession = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: nil)
         tagSession?.alertMessage = "Hold your iPhone near the item to learn more about it."

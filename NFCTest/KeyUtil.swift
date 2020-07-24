@@ -38,9 +38,10 @@ public enum APDU {
     static let BACKUP = Data(hex: "80320500")
     static let RESTORE = Data(hex: "80340000")
     static let RESET = Data(hex: "80360000")
+    static let GET_CARD_INFO = Data(hex: "80380000")
     static let CHANNEL_ESTABLISH = Data(hex: "80CE000041") // apduHeader + 長度41是16進位 + PublicKey
     static let CHANNEL_COMMUNICATE = Data(hex: "80CC")
-    // 80CC + [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [blocklength(1B,0~250)] [block(0~250B)]
+    static let CHANNEL_GET_PARTIAL_RETURN = Data(hex: "80C2")
 }
 
 public enum ErrorCode {

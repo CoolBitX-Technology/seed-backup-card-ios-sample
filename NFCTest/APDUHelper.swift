@@ -16,10 +16,36 @@ class APDUHelper: NSObject {
         let apduHeader = APDU.RESTORE
         let apduData = KeyUtil.sha256(data: command.password.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
-        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, result in
-            let response = self.restoreResponse(aes.decryptAES(data: result))
-            if let completion = self.completionHelper {
-                completion((status == "9000") ? .success("restore success: " + response) : .error("restore error: " + self.handleStatus(status: status)))
+        sendAPDU(tag, apdus: apdus, completion: { status, index, num, data in
+            var encryptedData = data
+            
+            if num == 1 {
+                let decryptedData = aes.decryptAES(data: encryptedData)
+                let response = decryptedData[36..<decryptedData.count].dataToStr()
+               
+                print("hash         : \(decryptedData[0..<32].hexEncodedString())")
+                print("salt         : \(decryptedData[32..<36].hexEncodedString())")
+                print("data in utf8 : \(response)")
+               
+                if let completion = self.completionHelper {
+                    completion((status == "9000") ? .success("restore success: " + response) : .error("restore error: " + self.handleStatus(status: status)))
+                }
+            } else {
+                let apdus = Array.init(repeating: Data(hex:"80C20000"), count: Int(num) - 1)
+                print("80C2 apdus : \(apdus)")
+                self.sendAPDU(tag, apdus: apdus, completion: { status, index, num, data in
+                    encryptedData.append(data)
+                    let decryptedData = aes.decryptAES(data: encryptedData)
+                    let response = decryptedData[36..<decryptedData.count].dataToStr()
+                    
+                    print("hash         : \(decryptedData[0..<32].hexEncodedString())")
+                    print("salt         : \(decryptedData[32..<36].hexEncodedString())")
+                    print("data in utf8 : \(response)")
+                    
+                    if let completion = self.completionHelper {
+                        completion((status == "9000") ? .success("restore success: " + response) : .error("restore error: " + self.handleStatus(status: status)))
+                    }
+                })
             }
         })
     }
@@ -27,7 +53,7 @@ class APDUHelper: NSObject {
     private func reset(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
         let apduHeader = APDU.RESET
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
-        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, result in
+        sendAPDU(tag, apdus: apdus, completion: { status, index, num, response in
             if let completion = self.completionHelper {
                 completion((status == "9000") ? .success("reset success!") : .error("reset error: " + self.handleStatus(status: status)))
             }
@@ -39,7 +65,7 @@ class APDUHelper: NSObject {
         var apduData = KeyUtil.sha256(data: command.password.data(using: .utf8)!)
         apduData.append(command.content.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
-        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, result in
+        sendAPDU(tag, apdus: apdus, completion: { status, index, num, response in
             if let completion = self.completionHelper {
                 completion((status == "9000") ? .success("backup success!") : .error("backup error: " +  self.handleStatus(status: status)))
             }
@@ -47,11 +73,11 @@ class APDUHelper: NSObject {
     }
     
     private func info(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
-        let apduHeader = APDU.INFO
+        let apduHeader = APDU.GET_CARD_INFO
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
-        sendAPDU(tag, aes: aes, apdus: apdus, completion: { status, result in
-            let response = self.infoResponse(aes.decryptAES(data: result))
-            let message = self.handleInfo(status: response)
+        sendAPDU(tag, apdus: apdus, completion: { status, index, num, respons  in
+            let info = self.infoResponse(aes.decryptAES(data: respons))
+            let message = self.handleInfo(status: info)
             if let completion = self.completionHelper {
                 completion((status == "9000") ? .success("card info: \n" + message) : .error("reset error: " + self.handleStatus(status: status)))
             }
@@ -79,7 +105,7 @@ class APDUHelper: NSObject {
         encodedData.append(salt)
         if let apduData = apduData { encodedData.append(apduData) }
         print("encodedData   :", encodedData.hexEncodedString())
-        var cipherData = Data(hex: "00")
+        var cipherData = Data(hex: "00") // [sign(1B)]
         cipherData.append(aes.encryptAES(data: encodedData))
         print("cipherData    :", cipherData.hexEncodedString(), cipherData.count)
         
@@ -93,9 +119,10 @@ class APDUHelper: NSObject {
             apduCommand.append(Data(from: UInt8(i)))
             apduCommand.append(Data(from: UInt8(blockNumber)))
             
-            let max = i+1 == blockNumber ? cipherData.count : (i+1)*blockNumber
-            let data = cipherData[i*blockNumber..<max]
-            apduCommand.append(Data(from: UInt8(data.count))) // bug
+            let max = i+1 == blockNumber ? cipherData.count : (i+1)*blockSize
+            print("max           :", max)
+            let data = cipherData[i*blockSize..<max]
+            apduCommand.append(Data(from: UInt8(data.count)))
             apduCommand.append(data)
             
             print("apduCommand   :", apduCommand.hexEncodedString())
@@ -106,9 +133,12 @@ class APDUHelper: NSObject {
         return apduCommands
     }
     
-    private func sendAPDU(_ tag: NFCISO7816Tag, aes: CryptoUtil, apdus: [Data],completion: @escaping (String,Data) -> Void) {
-        var result = Data()
+    private func sendAPDU(_ tag: NFCISO7816Tag, apdus: [Data],completion: @escaping (String, UInt8, UInt8, Data) -> Void) {
+        var returnData = Data()
+        var partialIndex: UInt8 = 0
+        var partialNumber: UInt8 = 0
         for i in 0..<apdus.count {
+            print("sendAPDU   :", apdus[i])
             let apdu = NFCISO7816APDU.init(data: apdus[i])!
             tag.sendCommand(apdu: apdu) { (response: Data, sw1: UInt8, sw2: UInt8, error: Error?) in
                 if let readerError = error as? NFCReaderError ,readerError.code == .readerTransceiveErrorTagConnectionLost {
@@ -117,27 +147,27 @@ class APDUHelper: NSObject {
                     }
                     return
                 }
-                
                 let sw1String = String(sw1, radix: 16)
                 let sw2String = String(sw2, radix: 16).padding(toLength: 2, withPad: "0", startingAt: 0)
+                let status = sw1String + sw2String
                 print("send APDU")
-                print("status    : \(sw1String)\(sw2String)")
-                print("response  : \(response.hexEncodedString())")
-                /* READ BINARY
-                parse response：[index(2B)] [number(2B)] [encryptedData(96B)] [postfix(4B)]
-                */
-                result.append(response)
-                if i == apdus.count - 1 && !result.isEmpty {
-                    let partialIndex = result.popFirst()
-                    print("partialIndex  :", partialIndex!)
-                    let partialNumber = result.popFirst()
-                    print("partialNumber :", partialNumber!)
-                    // partialNumber != 1 >> 80C2 ,partialIndex = 1,...,partialNumber
-                    let data = aes.decryptAES(data: result) // encryptedData >> decrypt
-                    self.handleResponse(data)
+                print("status    : \(status)")
+                if response.isEmpty {
+                    returnData.append(Data())
+                } else {
+                    var data = response
+                    print("response  : \(response.hexEncodedString())")
+                    // READ BINARY: parse response：[index(2B)] [number(2B)] [encryptedData(96B)] [postfix(4B)]
+                    partialIndex = data.popFirst()!
+                    print("partialIndex  :", partialIndex)
+                    partialNumber = data.popFirst()!
+                    print("partialNumber :", partialNumber) // partialNumber != 1 >> 80C2 ,partialIndex = 1,...,partialNumber
+                    returnData.append(data)
                 }
                 
-                completion(sw1String + sw2String,result)
+                if i == apdus.count - 1 {
+                    completion(status, partialIndex, partialNumber, returnData)
+                }
             }
         }
     }

@@ -79,8 +79,7 @@ class APDUHelper: NSObject {
         let apduHeader = APDU.GET_CARD_INFO
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
         sendAPDU(tag, apdus: apdus, completion: { status, index, num, respons  in
-            let info = self.infoResponse(aes.decryptAES(data: respons))
-            let message = self.handleInfo(status: info)
+            let message = self.handleInfo(aes.decryptAES(data: respons))
             if let completion = self.completionHelper {
                 completion((status == "9000") ? .success("card info: \n" + message) : .error("reset error: " + self.handleStatus(status: status)))
             }
@@ -175,14 +174,21 @@ class APDUHelper: NSObject {
         }
     }
     
-    private func handleInfo(status: String) -> String {
+    private func handleInfo(_ result: Data) -> String {
+        if result.isEmpty {
+            return "lost info"
+        }
+        self.handleResponse(result)
+        let status = result[36..<38].hexEncodedString()
+        let version = Int(result[38..<40].hexEncodedString())!
         guard status.count == 4 else {
             return "lost info"
         }
         let remainingTries = Int(status.prefix(2))!
         let remainingTriesmessage = remainingTries == 0 ? "card is locked" : "card remaining tries: \(String(remainingTries))"
         let occupiedmessage = (status.suffix(2) == "01") ? "card is occupied" : "card is empty"
-        return remainingTriesmessage + "\n" + occupiedmessage
+        let versionmessage = "card version: \(String(describing: version))"
+        return remainingTriesmessage + "\n" + occupiedmessage + "\n" + versionmessage
     }
     
     private func handleStatus(status: String) -> String {
@@ -223,11 +229,7 @@ class APDUHelper: NSObject {
     private func restoreResponse(_ result: Data) -> String {
         return result.isEmpty ? String() : result[36..<result.count].dataToStr()
     }
-    
-    private func infoResponse(_ result: Data) -> String {
-        return result.isEmpty ? String() : String(result.hexEncodedString().suffix(4))
-    }
-    
+            
     func setupSecureChannel( _ tag: NFCISO7816Tag, command: Command) {
         var secureChannelData = Data()
         secureChannelData.append(APDU.CHANNEL_ESTABLISH)

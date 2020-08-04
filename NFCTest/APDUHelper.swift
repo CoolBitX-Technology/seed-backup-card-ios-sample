@@ -180,14 +180,14 @@ class APDUHelper: NSObject {
         }
         self.handleResponse(result)
         let status = result[36..<38].hexEncodedString()
-        let version = Int(result[38..<40].hexEncodedString())!
+        let version = result[38..<40].hexEncodedString()
         guard status.count == 4 else {
             return "lost info"
         }
         let remainingTries = Int(status.prefix(2))!
         let remainingTriesmessage = remainingTries == 0 ? "card is locked" : "card remaining tries: \(String(remainingTries))"
         let occupiedmessage = (status.suffix(2) == "01") ? "card is occupied" : "card is empty"
-        let versionmessage = "card version: \(String(describing: version))"
+        let versionmessage = "card version: \(version)"
         return remainingTriesmessage + "\n" + occupiedmessage + "\n" + versionmessage
     }
     

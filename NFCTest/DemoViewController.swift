@@ -32,6 +32,11 @@ class DemoViewController: UIViewController {
         view.addGestureRecognizer(tap)
         setupMenu()
         selectedFeature(Feature.Info)
+        test()
+    }
+    
+    func test() {
+        UIPasteboard.general.string = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes,nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu."
     }
     
     func setupMenu() {

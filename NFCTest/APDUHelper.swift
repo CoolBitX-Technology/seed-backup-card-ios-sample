@@ -95,7 +95,7 @@ class APDUHelper: NSObject {
             
             let max = i+1 == blockNumber ? cipherData.count : (i+1)*blockNumber
             let data = cipherData[i*blockNumber..<max]
-            apduCommand.append(Data(from: UInt8(data.count)))
+            apduCommand.append(Data(from: UInt8(data.count))) // bug
             apduCommand.append(data)
             
             print("apduCommand   :", apduCommand.hexEncodedString())
@@ -124,7 +124,7 @@ class APDUHelper: NSObject {
                 print("status    : \(sw1String)\(sw2String)")
                 print("response  : \(response.hexEncodedString())")
                 /* READ BINARY
-                parse response：[index(2B)] [number(2B)] [encryptedData (96B)] [postfix(4B)]
+                parse response：[index(2B)] [number(2B)] [encryptedData(96B)] [postfix(4B)]
                 */
                 result.append(response)
                 if i == apdus.count - 1 && !result.isEmpty {
@@ -132,6 +132,7 @@ class APDUHelper: NSObject {
                     print("partialIndex  :", partialIndex!)
                     let partialNumber = result.popFirst()
                     print("partialNumber :", partialNumber!)
+                    // partialNumber != 1 >> 80C2 ,partialIndex = 1,...,partialNumber
                     let data = aes.decryptAES(data: result) // encryptedData >> decrypt
                     self.handleResponse(data)
                 }
@@ -163,8 +164,8 @@ class APDUHelper: NSObject {
         case ErrorCode.NO_DATA:
             message = "no data"
             break
-        case ErrorCode.PING_CODE_NOT_MATCH:
-            message = "ping code not match"
+        case ErrorCode.PIN_CODE_NOT_MATCH:
+            message = "pin code not match"
             break
         case ErrorCode.CARD_IS_LOCKED:
             message = "card is locked"

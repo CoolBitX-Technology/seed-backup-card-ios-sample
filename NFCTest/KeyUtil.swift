@@ -40,16 +40,17 @@ public enum APDU {
     static let RESTORE = Data(hex: "80340000")
     static let RESET = Data(hex: "80360000")
     static let INFO = Data(hex: "80380000")
+    /*setup secure channel*/
     static let CHANNEL_ESTABLISH = Data(hex: "80CE000041") // apduHeader + 長度41是16進位 + PublicKey
-    static let CHANNEL_COMMUNICATE = Data(hex: "80CC")
-    // 80CC + [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [blocklength(1B,0~250)] [block(0~250B)]
+    static let CHANNEL_COMMUNICATE = Data(hex: "80CC") // 80CC + [blockIndex(1B,0~blockNumber-1)] [blockNumber(1B,1~255)] [blocklength(1B,0~250)] [block(0~250B)]
+    static let CHANNEL_FRAGMENT = Data(hex: "80C2")
 }
 
 public enum ErrorCode {
     static let SUCCESS = "9000";
     static let RESET_FIRST = "6330";
     static let NO_DATA = "6370";
-    static let PING_CODE_NOT_MATCH = "6350";
+    static let PIN_CODE_NOT_MATCH = "6350";
     static let CARD_IS_LOCKED = "6390";
 }
 

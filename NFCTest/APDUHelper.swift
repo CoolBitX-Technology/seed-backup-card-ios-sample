@@ -18,8 +18,11 @@ class APDUHelper: NSObject {
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
         sendAPDU(tag, apdus: apdus, completion: { status, index, num, data in
             var encryptedData = data
-            
-            if num == 1 {
+            if num < 1 {
+                if let completion = self.completionHelper {
+                    completion((status == "9000") ? .success("restore success: ") : .error("restore error: " + self.handleStatus(status: status)))
+                }
+            } else if num == 1 {
                 let decryptedData = aes.decryptAES(data: encryptedData)
                 let response = decryptedData[36..<decryptedData.count].dataToStr()
                

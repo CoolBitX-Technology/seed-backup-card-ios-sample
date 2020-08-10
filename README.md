@@ -41,8 +41,10 @@ You can see SecureChannel Commentary in SecureChannel.txt, implement in function
     static let BACKUP = Data(hex: "80320500")
     static let RESTORE = Data(hex: "80340000")
     static let RESET = Data(hex: "80360000")
+    static let GET_CARD_INFO = Data(hex: "80380000")
     static let CHANNEL_ESTABLISH = Data(hex: "80CE000041") 
-    static let CHANNEL_COMMUNICATE = Data(hex: "80CC")
+    static let CHANNEL_COMMUNICATE = Data(hex: "80CC") 
+    static let CHANNEL_GET_PARTIAL_RETURN = Data(hex: "80C2")
 }
 
 public enum ErrorCode {
@@ -95,7 +97,7 @@ CryptoSwift https://github.com/krzyzanowskim/CryptoSwift.git
         var apduData = KeyUtil.sha256(data: testPassword.data(using: .utf8)!)
         apduData.append(testContent.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
-        sendAPDU(tag, aes: aes, apdus: apdus)
+        sendAPDU(tag, apdus: apdus, completion: completion)
     }
 ```
 
@@ -107,7 +109,7 @@ CryptoSwift https://github.com/krzyzanowskim/CryptoSwift.git
         let apduHeader = APDU.RESTORE
         let apduData = KeyUtil.sha256(data: testPassword.data(using: .utf8)!)
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: apduData)
-        sendAPDU(tag, aes: aes, apdus: apdus)
+        sendAPDU(tag, apdus: apdus, completion: completion)
     }
 ```
 
@@ -118,6 +120,6 @@ CryptoSwift https://github.com/krzyzanowskim/CryptoSwift.git
   func reset(_ tag: NFCISO7816Tag, aes: CryptoUtil) {
         let apduHeader = APDU.RESET
         let apdus = prepareAPDU(aes: aes, apduHeader: apduHeader, apduData: nil)
-        sendAPDU(tag, aes: aes, apdus: apdus)
+        sendAPDU(tag, apdus: apdus, completion: completion)
     }
 ```
